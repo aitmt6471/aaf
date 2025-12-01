@@ -181,6 +181,13 @@ body {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
 }
 
+/* 날짜와 시간 입력 필드 */
+input[type="date"],
+.time-select select {
+    font-size: 18px;
+    font-weight: 600;
+}
+
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
@@ -426,10 +433,16 @@ body {
 }
 
 .detail-value {
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 700;
     color: var(--text-main);
     text-align: right;
+}
+
+/* 날짜와 시간 값은 조금 더 크게 */
+.detail-value.date-time {
+    font-size: 18px;
+    color: var(--primary-color);
 }
 
 .modal-actions {
@@ -546,7 +559,11 @@ body {
 
     .detail-value {
         text-align: left;
-        font-size: 16px;
+        font-size: 15px;
+    }
+
+    .detail-value.date-time {
+        font-size: 17px;
     }
 
     .modal-actions {

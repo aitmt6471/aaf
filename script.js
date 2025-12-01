@@ -75,6 +75,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // 중복 체크: 같은 이름 + 같은 날짜로 이미 제출했는지 확인
+        const name = document.getElementById('name').value.trim();
+        const startDate = document.getElementById('startDate').value;
+        const key = `attendance_${name}_${startDate}`;
+
+        // localStorage에 저장된 기록 확인
+        const existingRecord = localStorage.getItem(key);
+        if (existingRecord) {
+            showNotification('이미 해당 날짜에 근태계가 존재하므로, 취소 근태계를 먼저 작성해주십시오.', 'error');
+            return;
+        }
+
         // Show confirmation modal
         showConfirmModal();
     });
@@ -83,6 +95,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmModal = document.getElementById('confirmModal');
     const confirmSubmitBtn = document.getElementById('confirmSubmit');
     const cancelSubmitBtn = document.getElementById('cancelSubmit');
+
+
+    function formatDateKorean(dateString) {
+        // "2025-12-01" -> "2025년 12월 1일"
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        return `${year}년 ${month}월 ${day}일`;
+    }
+
+    function formatTimeKorean(hour, minute) {
+        // "14:30" -> "오후 2시 30분"
+        const h = parseInt(hour);
+        const m = parseInt(minute);
+        const period = h < 12 ? '오전' : '오후';
+        const displayHour = h === 0 ? 12 : (h > 12 ? h - 12 : h);
+        return `${period} ${displayHour}시 ${m.toString().padStart(2, '0')}분`;
+    }
 
     function showConfirmModal() {
         // Collect form data for display
@@ -95,13 +126,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const endHour = document.getElementById('endHour').value;
         const endMinute = document.getElementById('endMinute').value;
 
+        // Format dates and times in Korean
+        const startDateKorean = formatDateKorean(startDate);
+        const startTimeKorean = formatTimeKorean(startHour, startMinute);
+        const endDateKorean = formatDateKorean(endDate);
+        const endTimeKorean = formatTimeKorean(endHour, endMinute);
+
         // Display data in modal
         document.getElementById('confirmDepartment').textContent = department;
         document.getElementById('confirmName').textContent = name;
-        document.getElementById('confirmStartDate').textContent = startDate;
-        document.getElementById('confirmStartTime').textContent = `${startHour}:${startMinute}`;
-        document.getElementById('confirmEndDate').textContent = endDate;
-        document.getElementById('confirmEndTime').textContent = `${endHour}:${endMinute}`;
+
+        const confirmStartDateEl = document.getElementById('confirmStartDate');
+        confirmStartDateEl.textContent = startDateKorean;
+        confirmStartDateEl.classList.add('date-time');
+
+        const confirmStartTimeEl = document.getElementById('confirmStartTime');
+        confirmStartTimeEl.textContent = startTimeKorean;
+        confirmStartTimeEl.classList.add('date-time');
+
+        const confirmEndDateEl = document.getElementById('confirmEndDate');
+        confirmEndDateEl.textContent = endDateKorean;
+        confirmEndDateEl.classList.add('date-time');
+
+        const confirmEndTimeEl = document.getElementById('confirmEndTime');
+        confirmEndTimeEl.textContent = endTimeKorean;
+        confirmEndTimeEl.classList.add('date-time');
 
         // Show modal
         confirmModal.classList.remove('hidden');
@@ -162,6 +211,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Since mode is 'no-cors', we can't read the response
             // Assume success if no error was thrown
+
+            // localStorage에 기록 저장 (중복 체크용)
+            const name = data.name.trim();
+            const startDate = data.startDate;
+            const key = `attendance_${name}_${startDate}`;
+
+            // 근태구분이 '취소'인 경우, 기존 기록 삭제
+            if (data.type === '취소') {
+                localStorage.removeItem(key);
+            } else {
+                // 그 외의 경우 저장
+                localStorage.setItem(key, JSON.stringify({
+                    name: name,
+                    date: startDate,
+                    type: data.type,
+                    timestamp: new Date().toISOString()
+                }));
+            }
+
             showNotification('제출이 완료되었습니다! 감사합니다.', 'success');
             form.reset();
 
