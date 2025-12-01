@@ -50,6 +50,22 @@ document.addEventListener('DOMContentLoaded', () => {
     endHourSelect.value = currentHour;
     endMinuteSelect.value = currentMinute;
 
+    // 근태 발생 일자가 변경되면 종료 일자의 최소값을 발생 일자로 설정
+    startDateInput.addEventListener('change', function () {
+        const startDate = this.value;
+        endDateInput.min = startDate;
+
+        // 만약 현재 종료 일자가 발생 일자보다 빠르면 자동으로 발생 일자와 같게 설정
+        if (endDateInput.value && endDateInput.value < startDate) {
+            endDateInput.value = startDate;
+        }
+    });
+
+    // 초기 로드 시에도 최소값 설정
+    if (startDateInput.value) {
+        endDateInput.min = startDateInput.value;
+    }
+
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -59,6 +75,59 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Show confirmation modal
+        showConfirmModal();
+    });
+
+    // Confirm Modal Logic
+    const confirmModal = document.getElementById('confirmModal');
+    const confirmSubmitBtn = document.getElementById('confirmSubmit');
+    const cancelSubmitBtn = document.getElementById('cancelSubmit');
+
+    function showConfirmModal() {
+        // Collect form data for display
+        const department = document.getElementById('department').value;
+        const name = document.getElementById('name').value;
+        const startDate = document.getElementById('startDate').value;
+        const startHour = document.getElementById('startHour').value;
+        const startMinute = document.getElementById('startMinute').value;
+        const endDate = document.getElementById('endDate').value;
+        const endHour = document.getElementById('endHour').value;
+        const endMinute = document.getElementById('endMinute').value;
+
+        // Display data in modal
+        document.getElementById('confirmDepartment').textContent = department;
+        document.getElementById('confirmName').textContent = name;
+        document.getElementById('confirmStartDate').textContent = startDate;
+        document.getElementById('confirmStartTime').textContent = `${startHour}:${startMinute}`;
+        document.getElementById('confirmEndDate').textContent = endDate;
+        document.getElementById('confirmEndTime').textContent = `${endHour}:${endMinute}`;
+
+        // Show modal
+        confirmModal.classList.remove('hidden');
+    }
+
+    function hideConfirmModal() {
+        confirmModal.classList.add('hidden');
+    }
+
+    // Cancel button - just close modal
+    cancelSubmitBtn.addEventListener('click', hideConfirmModal);
+
+    // Confirm button - proceed with submission
+    confirmSubmitBtn.addEventListener('click', async () => {
+        hideConfirmModal();
+        await submitForm();
+    });
+
+    // Close modal when clicking outside
+    confirmModal.addEventListener('click', (e) => {
+        if (e.target === confirmModal) {
+            hideConfirmModal();
+        }
+    });
+
+    async function submitForm() {
         // UI: Loading State
         setLoading(true);
         hideNotification();
@@ -97,6 +166,13 @@ document.addEventListener('DOMContentLoaded', () => {
             form.reset();
 
             // Reset to default values
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            const today = new Date();
+            const dateString = today.toISOString().split('T')[0];
+            const currentHour = String(today.getHours()).padStart(2, '0');
+            const currentMinute = String(Math.floor(today.getMinutes() / 30) * 30).padStart(2, '0');
+
             startDateInput.value = dateString;
             endDateInput.value = dateString;
             startHourSelect.value = currentHour;
@@ -110,7 +186,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             setLoading(false);
         }
-    });
+    }
+
 
     function setLoading(isLoading) {
         if (isLoading) {

@@ -149,6 +149,44 @@
         <div id="notification" class="notification hidden">
             <p id="notificationMessage"></p>
         </div>
+
+        <!-- 제출 확인 모달 -->
+        <div id="confirmModal" class="modal hidden">
+            <div class="modal-content">
+                <h2>제출 내용 확인</h2>
+                <p class="modal-description">아래 내용이 맞는지 확인해 주세요.</p>
+                <div class="confirm-details">
+                    <div class="detail-row">
+                        <span class="detail-label">소속:</span>
+                        <span class="detail-value" id="confirmDepartment"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">이름:</span>
+                        <span class="detail-value" id="confirmName"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">근태 발생일자:</span>
+                        <span class="detail-value" id="confirmStartDate"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">시작 시간:</span>
+                        <span class="detail-value" id="confirmStartTime"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">근태 종료일자:</span>
+                        <span class="detail-value" id="confirmEndDate"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">종료 시간:</span>
+                        <span class="detail-value" id="confirmEndTime"></span>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="modal-btn cancel-btn" id="cancelSubmit">취소</button>
+                    <button type="button" class="modal-btn confirm-btn" id="confirmSubmit">확인</button>
+                </div>
+            </div>
+        </div>
     </main>
 
     <script src="script.js"></script>
