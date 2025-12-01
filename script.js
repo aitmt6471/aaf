@@ -25,8 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
         endHourSelect.add(new Option(hour, hour));
     }
 
-    // Generate minutes (00, 30)
-    [0, 30].forEach(min => {
+    // Generate minutes (00, 10, 20, 30, 40, 50)
+    [0, 10, 20, 30, 40, 50].forEach(min => {
         const minute = String(min).padStart(2, '0');
         startMinuteSelect.add(new Option(minute, minute));
         endMinuteSelect.add(new Option(minute, minute));
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const today = new Date();
     const dateString = today.toISOString().split('T')[0];
     const currentHour = String(today.getHours()).padStart(2, '0');
-    const currentMinute = String(Math.floor(today.getMinutes() / 30) * 30).padStart(2, '0');
+    const currentMinute = String(Math.floor(today.getMinutes() / 10) * 10).padStart(2, '0');
 
     if (startDateInput) startDateInput.value = dateString;
     if (endDateInput) endDateInput.value = dateString;
@@ -239,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const today = new Date();
             const dateString = today.toISOString().split('T')[0];
             const currentHour = String(today.getHours()).padStart(2, '0');
-            const currentMinute = String(Math.floor(today.getMinutes() / 30) * 30).padStart(2, '0');
+            const currentMinute = String(Math.floor(today.getMinutes() / 10) * 10).padStart(2, '0');
 
             startDateInput.value = dateString;
             endDateInput.value = dateString;
