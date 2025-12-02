@@ -75,16 +75,21 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 중복 체크: 같은 이름 + 같은 날짜로 이미 제출했는지 확인
-        const name = document.getElementById('name').value.trim();
-        const startDate = document.getElementById('startDate').value;
-        const key = `attendance_${name}_${startDate}`;
+        // 근태구분 확인
+        const attendanceType = document.getElementById('type').value;
 
-        // localStorage에 저장된 기록 확인
-        const existingRecord = localStorage.getItem(key);
-        if (existingRecord) {
-            showNotification('이미 해당 날짜에 근태계가 존재하므로, 취소 근태계를 먼저 작성해주십시오.', 'error');
-            return;
+        // 중복 체크: 근태구분이 '취소'가 아닐 때만 체크
+        if (attendanceType !== '취소') {
+            const name = document.getElementById('name').value.trim();
+            const startDate = document.getElementById('startDate').value;
+            const key = `attendance_${name}_${startDate}`;
+
+            // localStorage에 저장된 기록 확인
+            const existingRecord = localStorage.getItem(key);
+            if (existingRecord) {
+                showNotification('이미 해당 날짜에 근태계가 존재하므로, 취소 근태계를 먼저 작성해주십시오.', 'error');
+                return;
+            }
         }
 
         // Show confirmation modal
@@ -95,7 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmModal = document.getElementById('confirmModal');
     const confirmSubmitBtn = document.getElementById('confirmSubmit');
     const cancelSubmitBtn = document.getElementById('cancelSubmit');
-
 
     function formatDateKorean(dateString) {
         // "2025-12-01" -> "2025년 12월 1일"
@@ -255,7 +259,6 @@ document.addEventListener('DOMContentLoaded', () => {
             setLoading(false);
         }
     }
-
 
     function setLoading(isLoading) {
         if (isLoading) {
