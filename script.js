@@ -406,22 +406,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             });
 
-            // 필터링: 소속, 성명, 해당 연도만
-            const filteredRecords = allRecords.filter(record => {
-                if (record.department !== department || record.name !== name) {
-                    return false;
-                }
-
-                // 근태발생일자가 현재 연도인지 확인
-                if (record.startDate) {
-                    const startYear = new Date(record.startDate).getFullYear();
-                    if (startYear !== currentYear) {
-                        return false;
-                    }
-                }
-
-                return true;
-            });
+            // 필터링: 소속, 성명만
+            const filteredRecords = allRecords.filter(record =>
+                record.department === department && record.name === name
+            );
 
             if (filteredRecords && filteredRecords.length > 0) {
                 // Calculate leave counts
