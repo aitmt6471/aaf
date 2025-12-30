@@ -344,12 +344,38 @@ document.addEventListener('DOMContentLoaded', () => {
         tableContainer.classList.add('hidden');
 
         try {
-            // Call Google Apps Script API
-            const response = await fetch(`${SCRIPT_URL}?action=lookup&department=${encodeURIComponent(department)}&name=${encodeURIComponent(name)}`, {
-                method: 'GET'
-            });
+            // JSONP 방식으로 Google Apps Script API 호출
+            const callbackName = 'jsonpCallback_' + Date.now();
 
-            const data = await response.json();
+            // Promise로 JSONP 요청 래핑
+            const data = await new Promise((resolve, reject) => {
+                // 전역 콜백 함수 생성
+                window[callbackName] = function (response) {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    resolve(response);
+                };
+
+                // script 태그 생성
+                const script = document.createElement('script');
+                script.src = `${SCRIPT_URL}?action=lookup&department=${encodeURIComponent(department)}&name=${encodeURIComponent(name)}&callback=${callbackName}`;
+                script.onerror = function () {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    reject(new Error('Failed to load data'));
+                };
+
+                document.body.appendChild(script);
+
+                // 타임아웃 설정 (10초)
+                setTimeout(() => {
+                    if (window[callbackName]) {
+                        delete window[callbackName];
+                        document.body.removeChild(script);
+                        reject(new Error('Request timeout'));
+                    }
+                }, 10000);
+            });
 
             if (data && data.length > 0) {
                 // Calculate leave counts
