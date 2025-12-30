@@ -2,7 +2,7 @@
  * Google Apps Script Web App URL
  * TODO: Replace this URL with the actual Web App URL from the deployment.
  */
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyaq4yO-HVEYmO5_Pv_n0xZpT5Z0X-9ef8KmRUrYs_0W2bTA1dpOy6FUtWQglJ4CFg0SQ/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwKZoWmYZLoeM0rW0eHXMQepWRw66wGqCjPWJpQF29JvrfW-bbkoG5vqDMY4XZJQ08vyQ/exec';
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('attendanceForm');
