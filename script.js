@@ -472,9 +472,36 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 한국어 날짜 형식 파싱 함수
+    function parseKoreanDate(dateStr) {
+        if (!dateStr) return null;
+
+        // "2025. 11. 6 오후 5:00:00" 형식 파싱
+        const koreanMatch = dateStr.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})/);
+        if (koreanMatch) {
+            const year = parseInt(koreanMatch[1]);
+            const month = parseInt(koreanMatch[2]) - 1; // 0-based
+            const day = parseInt(koreanMatch[3]);
+            return new Date(year, month, day);
+        }
+
+        // 일반 날짜 형식 시도
+        const date = new Date(dateStr);
+        if (!isNaN(date.getTime())) {
+            return date;
+        }
+
+        return null;
+    }
+
     function formatDate(startDate, endDate) {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+        const start = parseKoreanDate(startDate);
+        const end = parseKoreanDate(endDate);
+
+        // 날짜 파싱 실패 시 원본 반환
+        if (!start || !end) {
+            return startDate || '';
+        }
 
         const formatSingle = (date) => {
             const year = String(date.getFullYear()).slice(-2); // 2025 → 25
