@@ -376,8 +376,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const rows = jsonData.table.rows;
             const currentYear = new Date().getFullYear();
 
-            const allRecords = rows.map(row => {
+            console.log('Total rows:', rows.length);
+            console.log('First row sample:', rows[0]);
+
+            const allRecords = rows.map((row, index) => {
                 const cells = row.c;
+
+                // 첫 3개 행만 로그 출력
+                if (index < 3) {
+                    console.log(`Row ${index}:`, {
+                        reviewStatus: cells[8],
+                        approvalStatus: cells[10],
+                        startDate: cells[4]
+                    });
+                }
+
                 return {
                     submitDate: cells[0]?.f || cells[0]?.v || '',  // A: 접수일자
                     department: cells[1]?.v || '',                  // B: 소속
