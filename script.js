@@ -374,6 +374,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 데이터 추출 및 변환
             const rows = jsonData.table.rows;
+            const currentYear = new Date().getFullYear();
+
             const allRecords = rows.map(row => {
                 const cells = row.c;
                 return {
@@ -386,14 +388,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     type: cells[6]?.v || '',                        // G: 근태구분
                     description: cells[7]?.v || '',                 // H: 근태사유
                     reviewStatus: cells[8]?.v || '',                // I: 검토상태
-                    approvalStatus: cells[9]?.v || ''               // J: 승인상태
+                    approvalStatus: cells[10]?.v || ''              // K: 승인상태 (J열 건너뜀)
                 };
             });
 
-            // 필터링: 소속과 성명이 일치하는 레코드만
-            const filteredRecords = allRecords.filter(record =>
-                record.department === department && record.name === name
-            );
+            // 필터링: 소속, 성명, 해당 연도만
+            const filteredRecords = allRecords.filter(record => {
+                if (record.department !== department || record.name !== name) {
+                    return false;
+                }
+
+                // 근태발생일자가 현재 연도인지 확인
+                if (record.startDate) {
+                    const startYear = new Date(record.startDate).getFullYear();
+                    if (startYear !== currentYear) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
 
             if (filteredRecords && filteredRecords.length > 0) {
                 // Calculate leave counts
@@ -475,19 +489,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getStatusBadge(status) {
-        // 빈 값이거나 없으면 '-' 표시
-        if (!status || status === '' || status === '-') {
-            return '<span class="status-badge status-none">-</span>';
-        }
-
-        const statusLower = status.toLowerCase();
-
-        // '승인'이 포함되어 있으면 'O' 표시
-        if (statusLower.includes('승인') || statusLower.includes('완료')) {
+        // 정확히 '승인'일 때만 'O' 표시
+        if (status && status.trim() === '승인') {
             return '<span class="status-badge status-approved">O</span>';
-        } else {
-            // 그 외의 경우 원본 텍스트 표시
-            return `<span class="status-badge status-pending">${status}</span>`;
         }
+
+        // 그 외 모든 경우 '-' 표시
+        return '<span class="status-badge status-none">-</span>';
     }
 });
