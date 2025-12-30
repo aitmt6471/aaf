@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Google Apps Script Web App URL
  * TODO: Replace this URL with the actual Web App URL from the deployment.
  */
@@ -129,6 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const endDate = document.getElementById('endDate').value;
         const endHour = document.getElementById('endHour').value;
         const endMinute = document.getElementById('endMinute').value;
+        const type = document.getElementById('type').value;
 
         // Format dates and times in Korean
         const startDateKorean = formatDateKorean(startDate);
@@ -155,6 +156,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const confirmEndTimeEl = document.getElementById('confirmEndTime');
         confirmEndTimeEl.textContent = endTimeKorean;
         confirmEndTimeEl.classList.add('date-time');
+
+        document.getElementById('confirmType').textContent = type;
 
         // Show modal
         confirmModal.classList.remove('hidden');
@@ -280,5 +283,173 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function hideNotification() {
         notification.classList.add('hidden');
+    }
+
+    // ===== Tab Switching =====
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const submitSection = document.getElementById('submitSection');
+    const lookupSection = document.getElementById('lookupSection');
+    const headerDescription = document.getElementById('headerDescription');
+
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.dataset.tab;
+
+            // Update active tab button
+            tabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Switch sections
+            if (tab === 'submit') {
+                submitSection.classList.remove('hidden');
+                submitSection.classList.add('active');
+                lookupSection.classList.remove('active');
+                lookupSection.classList.add('hidden');
+                headerDescription.textContent = '정확한 근태 관리를 위해 특이사항을 입력해 주세요.';
+            } else if (tab === 'lookup') {
+                lookupSection.classList.remove('hidden');
+                lookupSection.classList.add('active');
+                submitSection.classList.remove('active');
+                submitSection.classList.add('hidden');
+                headerDescription.textContent = '소속과 성명을 입력하여 근태 신청 내역을 조회하세요.';
+            }
+        });
+    });
+
+    // ===== Lookup Functionality =====
+    const lookupForm = document.getElementById('lookupForm');
+    const statsContainer = document.getElementById('statsContainer');
+    const tableContainer = document.getElementById('tableContainer');
+    const recordsTableBody = document.getElementById('recordsTableBody');
+    const annualLeaveCount = document.getElementById('annualLeaveCount');
+    const halfLeaveCount = document.getElementById('halfLeaveCount');
+    const noRecords = document.getElementById('noRecords');
+
+    lookupForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const department = document.getElementById('lookupDepartment').value;
+        const name = document.getElementById('lookupName').value;
+        const lookupBtn = lookupForm.querySelector('.lookup-btn');
+        const btnText = lookupBtn.querySelector('.btn-text');
+        const loader = lookupBtn.querySelector('.loader');
+
+        // Show loading state
+        btnText.style.display = 'none';
+        loader.style.display = 'inline-block';
+        lookupBtn.disabled = true;
+
+        // Hide previous results
+        statsContainer.classList.add('hidden');
+        tableContainer.classList.add('hidden');
+
+        try {
+            // Call Google Apps Script API
+            const response = await fetch(`${SCRIPT_URL}?action=lookup&department=${encodeURIComponent(department)}&name=${encodeURIComponent(name)}`, {
+                method: 'GET'
+            });
+
+            const data = await response.json();
+
+            if (data && data.length > 0) {
+                // Calculate leave counts
+                let annualCount = 0;
+                let halfCount = 0;
+
+                data.forEach(record => {
+                    if (record.type === '연차') annualCount++;
+                    if (record.type === '반차') halfCount++;
+                });
+
+                // Update stats
+                annualLeaveCount.textContent = annualCount;
+                halfLeaveCount.textContent = halfCount;
+                statsContainer.classList.remove('hidden');
+
+                // Render table
+                renderRecordsTable(data);
+                tableContainer.classList.remove('hidden');
+                noRecords.classList.add('hidden');
+            } else {
+                // No records found
+                statsContainer.classList.add('hidden');
+                tableContainer.classList.remove('hidden');
+                recordsTableBody.innerHTML = '';
+                noRecords.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Lookup error:', error);
+            alert('조회 중 오류가 발생했습니다. 다시 시도해 주세요.');
+        } finally {
+            // Reset button state
+            btnText.style.display = 'inline';
+            loader.style.display = 'none';
+            lookupBtn.disabled = false;
+        }
+    });
+
+    function renderRecordsTable(records) {
+        recordsTableBody.innerHTML = '';
+
+        records.forEach(record => {
+            const row = document.createElement('tr');
+
+            // Format date
+            const dateStr = formatDate(record.startDate, record.endDate);
+
+            // Format time
+            const timeStr = record.time || '-';
+
+            // Get status badges
+            const reviewBadge = getStatusBadge(record.reviewStatus);
+            const approvalBadge = getStatusBadge(record.approvalStatus);
+
+            row.innerHTML = `
+                <td>${dateStr}</td>
+                <td><strong>${record.type}</strong></td>
+                <td>${timeStr}</td>
+                <td>${record.description || '-'}</td>
+                <td>${reviewBadge}</td>
+                <td>${approvalBadge}</td>
+            `;
+
+            recordsTableBody.appendChild(row);
+        });
+    }
+
+    function formatDate(startDate, endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        const formatSingle = (date) => {
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            return `${year}.${month}.${day}`;
+        };
+
+        if (startDate === endDate) {
+            return formatSingle(start);
+        } else {
+            return `${formatSingle(start)} ~ ${formatSingle(end)}`;
+        }
+    }
+
+    function getStatusBadge(status) {
+        if (!status || status === '' || status === '-') {
+            return '<span class="status-badge status-none">-</span>';
+        }
+
+        const statusLower = status.toLowerCase();
+
+        if (statusLower.includes('승인') || statusLower.includes('완료')) {
+            return `<span class="status-badge status-approved">${status}</span>`;
+        } else if (statusLower.includes('대기') || statusLower.includes('검토')) {
+            return `<span class="status-badge status-pending">${status}</span>`;
+        } else if (statusLower.includes('반려') || statusLower.includes('거부')) {
+            return `<span class="status-badge status-rejected">${status}</span>`;
+        } else {
+            return `<span class="status-badge status-none">${status}</span>`;
+        }
     }
 });

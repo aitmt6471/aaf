@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 
 <head>
@@ -28,126 +28,214 @@
                 <img src="ait-logo.png" alt="AIT Logo" class="logo">
                 <h1>근태계</h1>
             </div>
-            <p>정확한 근태 관리를 위해 특이사항을 입력해 주세요.</p>
+            <p id="headerDescription">정확한 근태 관리를 위해 특이사항을 입력해 주세요.</p>
+
+            <!-- 탭 네비게이션 -->
+            <div class="tabs">
+                <button type="button" class="tab-btn active" data-tab="submit">신청</button>
+                <button type="button" class="tab-btn" data-tab="lookup">조회</button>
+            </div>
         </header>
 
-        <form id="attendanceForm" class="attendance-form">
-            <div class="form-group">
-                <label for="department">소속</label>
-                <div class="select-wrapper">
-                    <select id="department" name="department" required>
-                        <option value="" disabled selected>선택해 주세요</option>
-                        <option value="생산관리팀">생산관리팀</option>
-                        <option value="품질관리팀">품질관리팀</option>
-                        <option value="SCM팀">SCM팀</option>
-                        <option value="사출기술팀">사출기술팀</option>
-                        <option value="영업물류팀">영업물류팀</option>
-                        <option value="미화">미화</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="name">성명</label>
-                <input type="text" id="name" name="name" placeholder="홍길동" required>
-            </div>
-
-            <div class="form-group">
-                <label for="position">직위</label>
-                <div class="select-wrapper">
-                    <select id="position" name="position" required>
-                        <option value="사원">사원</option>
-                        <option value="주임">주임</option>
-                        <option value="대리">대리</option>
-                        <option value="과장">과장</option>
-                        <option value="차장">차장</option>
-                        <option value="부장">부장</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="startDate">근태 발생 일자</label>
-                <input type="date" id="startDate" name="startDate" required>
-            </div>
-
-            <div class="form-group">
-                <label>시작 시간</label>
-                <div class="time-input-wrapper">
-                    <div class="select-wrapper time-select">
-                        <select id="startHour" name="startHour" required>
-                            <option value="">시</option>
-                        </select>
-                    </div>
-                    <span class="time-separator">:</span>
-                    <div class="select-wrapper time-select">
-                        <select id="startMinute" name="startMinute" required>
-                            <option value="">분</option>
+        <!-- 신청 섹션 -->
+        <div id="submitSection" class="tab-content active">
+            <form id="attendanceForm" class="attendance-form">
+                <div class="form-group">
+                    <label for="department">소속</label>
+                    <div class="select-wrapper">
+                        <select id="department" name="department" required>
+                            <option value="" disabled selected>선택해 주세요</option>
+                            <option value="생산관리팀">생산관리팀</option>
+                            <option value="품질관리팀">품질관리팀</option>
+                            <option value="SCM팀">SCM팀</option>
+                            <option value="사출기술팀">사출기술팀</option>
+                            <option value="영업물류팀">영업물류팀</option>
+                            <option value="미화">미화</option>
                         </select>
                     </div>
                 </div>
-            </div>
 
-            <div class="form-group">
-                <label for="endDate">근태 종료 일자</label>
-                <input type="date" id="endDate" name="endDate" required>
-            </div>
+                <div class="form-group">
+                    <label for="name">성명</label>
+                    <input type="text" id="name" name="name" placeholder="홍길동" required>
+                </div>
 
-            <div class="form-group">
-                <label>종료 시간</label>
-                <div class="time-input-wrapper">
-                    <div class="select-wrapper time-select">
-                        <select id="endHour" name="endHour" required>
-                            <option value="">시</option>
+                <div class="form-group">
+                    <label for="position">직위</label>
+                    <div class="select-wrapper">
+                        <select id="position" name="position" required>
+                            <option value="사원">사원</option>
+                            <option value="주임">주임</option>
+                            <option value="대리">대리</option>
+                            <option value="과장">과장</option>
+                            <option value="차장">차장</option>
+                            <option value="부장">부장</option>
                         </select>
                     </div>
-                    <span class="time-separator">:</span>
-                    <div class="select-wrapper time-select">
-                        <select id="endMinute" name="endMinute" required>
-                            <option value="">분</option>
+                </div>
+
+                <div class="form-group">
+                    <label for="startDate">근태 발생 일자</label>
+                    <input type="date" id="startDate" name="startDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label>시작 시간</label>
+                    <div class="time-input-wrapper">
+                        <div class="select-wrapper time-select">
+                            <select id="startHour" name="startHour" required>
+                                <option value="">시</option>
+                            </select>
+                        </div>
+                        <span class="time-separator">:</span>
+                        <div class="select-wrapper time-select">
+                            <select id="startMinute" name="startMinute" required>
+                                <option value="">분</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="endDate">근태 종료 일자</label>
+                    <input type="date" id="endDate" name="endDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label>종료 시간</label>
+                    <div class="time-input-wrapper">
+                        <div class="select-wrapper time-select">
+                            <select id="endHour" name="endHour" required>
+                                <option value="">시</option>
+                            </select>
+                        </div>
+                        <span class="time-separator">:</span>
+                        <div class="select-wrapper time-select">
+                            <select id="endMinute" name="endMinute" required>
+                                <option value="">분</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="type">근태구분</label>
+                    <div class="select-wrapper">
+                        <select id="type" name="type" required>
+                            <option value="" disabled selected>선택해 주세요</option>
+                            <option value="잔업">잔업</option>
+                            <option value="특근">특근</option>
+                            <option value="야간">야간</option>
+                            <option value="결근">결근</option>
+                            <option value="조퇴">조퇴</option>
+                            <option value="지각">지각</option>
+                            <option value="외출">외출</option>
+                            <option value="연차">연차</option>
+                            <option value="반차">반차</option>
+                            <option value="경조">경조</option>
+                            <option value="조출">조출</option>
+                            <option value="근태누락">근태누락</option>
+                            <option value="휴직">휴직</option>
+                            <option value="개인사정">개인사정</option>
+                            <option value="취소">취소</option>
                         </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">사유 및 상세 내용</label>
+                    <textarea id="description" name="description" rows="4" placeholder="상세 사유를 입력해 주세요."
+                        required></textarea>
+                </div>
+
+                <button type="submit" class="submit-btn">
+                    <span class="btn-text">제출하기</span>
+                    <span class="loader" style="display: none;"></span>
+                </button>
+            </form>
+
+            <div id="notification" class="notification hidden">
+                <p id="notificationMessage"></p>
+            </div>
+        </div>
+
+        <!-- 조회 섹션 -->
+        <div id="lookupSection" class="tab-content hidden">
+            <form id="lookupForm" class="lookup-form">
+                <div class="lookup-inputs">
+                    <div class="form-group">
+                        <label for="lookupDepartment">소속</label>
+                        <div class="select-wrapper">
+                            <select id="lookupDepartment" name="lookupDepartment" required>
+                                <option value="" disabled selected>선택해 주세요</option>
+                                <option value="생산관리팀">생산관리팀</option>
+                                <option value="품질관리팀">품질관리팀</option>
+                                <option value="SCM팀">SCM팀</option>
+                                <option value="사출기술팀">사출기술팀</option>
+                                <option value="영업물류팀">영업물류팀</option>
+                                <option value="미화">미화</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="lookupName">성명</label>
+                        <input type="text" id="lookupName" name="lookupName" placeholder="홍길동" required>
+                    </div>
+                    <button type="submit" class="lookup-btn">
+                        <span class="btn-text">조회</span>
+                        <span class="loader" style="display: none;"></span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- 통계 카드 -->
+            <div class="stats-container hidden" id="statsContainer">
+                <div class="stats-cards">
+                    <div class="stat-card">
+                        <div class="stat-icon">📅</div>
+                        <div class="stat-content">
+                            <h3>연차 사용</h3>
+                            <div class="stat-value-wrapper">
+                                <span class="stat-value" id="annualLeaveCount">0</span>
+                                <span class="stat-label">회</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏰</div>
+                        <div class="stat-content">
+                            <h3>반차 사용</h3>
+                            <div class="stat-value-wrapper">
+                                <span class="stat-value" id="halfLeaveCount">0</span>
+                                <span class="stat-label">회</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label for="type">근태구분</label>
-                <div class="select-wrapper">
-                    <select id="type" name="type" required>
-                        <option value="" disabled selected>선택해 주세요</option>
-                        <option value="잔업">잔업</option>
-                        <option value="특근">특근</option>
-                        <option value="야간">야간</option>
-                        <option value="결근">결근</option>
-                        <option value="조퇴">조퇴</option>
-                        <option value="지각">지각</option>
-                        <option value="외출">외출</option>
-                        <option value="연차">연차</option>
-                        <option value="반차">반차</option>
-                        <option value="경조">경조</option>
-                        <option value="조출">조출</option>
-                        <option value="근태누락">근태누락</option>
-                        <option value="휴직">휴직</option>
-                        <option value="개인사정">개인사정</option>
-                        <option value="취소">취소</option>
-                    </select>
+            <!-- 조회 결과 테이블 -->
+            <div class="table-container hidden" id="tableContainer">
+                <h3 class="table-title">근태 신청 내역</h3>
+                <div class="table-wrapper">
+                    <table class="records-table">
+                        <thead>
+                            <tr>
+                                <th>날짜</th>
+                                <th>근태구분</th>
+                                <th>시간</th>
+                                <th>사유</th>
+                                <th>검토상태</th>
+                                <th>승인상태</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recordsTableBody">
+                            <!-- 조회 결과가 여기에 표시됩니다 -->
+                        </tbody>
+                    </table>
                 </div>
+                <p class="no-records hidden" id="noRecords">조회된 근태 기록이 없습니다.</p>
             </div>
-
-            <div class="form-group">
-                <label for="description">사유 및 상세 내용</label>
-                <textarea id="description" name="description" rows="4" placeholder="상세 사유를 입력해 주세요."
-                    required></textarea>
-            </div>
-
-            <button type="submit" class="submit-btn">
-                <span class="btn-text">제출하기</span>
-                <span class="loader" style="display: none;"></span>
-            </button>
-        </form>
-
-        <div id="notification" class="notification hidden">
-            <p id="notificationMessage"></p>
         </div>
 
         <!-- 제출 확인 모달 -->
@@ -179,6 +267,10 @@
                     <div class="detail-row">
                         <span class="detail-label">종료 시간:</span>
                         <span class="detail-value" id="confirmEndTime"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">근태구분:</span>
+                        <span class="detail-value" id="confirmType"></span>
                     </div>
                 </div>
                 <div class="modal-actions">
