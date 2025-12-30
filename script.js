@@ -344,12 +344,17 @@ document.addEventListener('DOMContentLoaded', () => {
         tableContainer.classList.add('hidden');
 
         try {
-            // Google Apps Script API 호출
-            const url = `${SCRIPT_URL}?action=lookup&department=${encodeURIComponent(department)}&name=${encodeURIComponent(name)}`;
-
-            const response = await fetch(url, {
-                method: 'GET',
-                redirect: 'follow'
+            // POST 방식으로 조회 요청
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    action: 'lookup',
+                    department: department,
+                    name: name
+                })
             });
 
             if (!response.ok) {
