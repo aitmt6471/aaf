@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Google Apps Script Web App URL
  * TODO: Replace this URL with the actual Web App URL from the deployment.
  */
