@@ -384,7 +384,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     startDate: cells[4]?.f || cells[4]?.v || '',   // E: 근태발생일자
                     endDate: cells[5]?.f || cells[5]?.v || '',     // F: 근태종료일자
                     type: cells[6]?.v || '',                        // G: 근태구분
-                    description: cells[7]?.v || ''                  // H: 근태사유
+                    description: cells[7]?.v || '',                 // H: 근태사유
+                    reviewStatus: cells[8]?.v || '',                // I: 검토상태
+                    approvalStatus: cells[9]?.v || ''               // J: 승인상태
                 };
             });
 
@@ -473,20 +475,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getStatusBadge(status) {
+        // 빈 값이거나 없으면 '-' 표시
         if (!status || status === '' || status === '-') {
             return '<span class="status-badge status-none">-</span>';
         }
 
         const statusLower = status.toLowerCase();
 
+        // '승인'이 포함되어 있으면 'O' 표시
         if (statusLower.includes('승인') || statusLower.includes('완료')) {
-            return `<span class="status-badge status-approved">${status}</span>`;
-        } else if (statusLower.includes('대기') || statusLower.includes('검토')) {
-            return `<span class="status-badge status-pending">${status}</span>`;
-        } else if (statusLower.includes('반려') || statusLower.includes('거부')) {
-            return `<span class="status-badge status-rejected">${status}</span>`;
+            return '<span class="status-badge status-approved">O</span>';
         } else {
-            return `<span class="status-badge status-none">${status}</span>`;
+            // 그 외의 경우 원본 텍스트 표시
+            return `<span class="status-badge status-pending">${status}</span>`;
         }
     }
 });
