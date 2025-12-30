@@ -1,8 +1,14 @@
 /**
- * Google Apps Script Web App URL
- * TODO: Replace this URL with the actual Web App URL from the deployment.
+ * Google Apps Script Web App URL (for submission)
  */
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwKZoWmYZLoeM0rW0eHXMQepWRw66wGqCjPWJpQF29JvrfW-bbkoG5vqDMY4XZJQ08vyQ/exec';
+
+/**
+ * Google Sheets Configuration (for lookup)
+ */
+const SPREADSHEET_ID = '1Eux9biqPW5DSGpsNTaqDCQQB2It4qSphQQKdJ2iPumY';
+const SHEET_NAME = '근태이슈_DB';
+const SHEETS_API_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('attendanceForm');
@@ -344,36 +350,55 @@ document.addEventListener('DOMContentLoaded', () => {
         tableContainer.classList.add('hidden');
 
         try {
-            // POST 방식으로 조회 요청
-            const response = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    action: 'lookup',
-                    department: department,
-                    name: name
-                })
-            });
+            // Google Sheets Visualization API 호출
+            const response = await fetch(SHEETS_API_URL);
 
-            let data;
-            try {
-                data = await response.json();
-            } catch (jsonError) {
-                console.error('JSON parsing error:', jsonError);
-                throw new Error('서버 응답을 처리할 수 없습니다. 배포 설정을 확인해주세요.');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
 
+            const text = await response.text();
 
+            // Google Visualization API 응답 파싱
+            // 응답 형식: google.visualization.Query.setResponse({...})
+            const jsonMatch = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
+            if (!jsonMatch) {
+                throw new Error('Invalid response format from Google Sheets');
+            }
 
-            if (data && data.length > 0) {
+            const jsonData = JSON.parse(jsonMatch[1]);
+
+            if (jsonData.status === 'error') {
+                throw new Error(jsonData.errors[0].detailed_message || 'Google Sheets API error');
+            }
+
+            // 데이터 추출 및 변환
+            const rows = jsonData.table.rows;
+            const allRecords = rows.map(row => {
+                const cells = row.c;
+                return {
+                    submitDate: cells[0]?.f || cells[0]?.v || '',  // A: 접수일자
+                    department: cells[1]?.v || '',                  // B: 소속
+                    position: cells[2]?.v || '',                    // C: 직위
+                    name: cells[3]?.v || '',                        // D: 성명
+                    startDate: cells[4]?.f || cells[4]?.v || '',   // E: 근태발생일자
+                    endDate: cells[5]?.f || cells[5]?.v || '',     // F: 근태종료일자
+                    type: cells[6]?.v || '',                        // G: 근태구분
+                    description: cells[7]?.v || ''                  // H: 근태사유
+                };
+            });
+
+            // 필터링: 소속과 성명이 일치하는 레코드만
+            const filteredRecords = allRecords.filter(record =>
+                record.department === department && record.name === name
+            );
+
+            if (filteredRecords && filteredRecords.length > 0) {
                 // Calculate leave counts
                 let annualCount = 0;
                 let halfCount = 0;
 
-                data.forEach(record => {
+                filteredRecords.forEach(record => {
                     if (record.type === '연차') annualCount++;
                     if (record.type === '반차') halfCount++;
                 });
@@ -384,7 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 statsContainer.classList.remove('hidden');
 
                 // Render table
-                renderRecordsTable(data);
+                renderRecordsTable(filteredRecords);
                 tableContainer.classList.remove('hidden');
                 noRecords.classList.add('hidden');
             } else {
