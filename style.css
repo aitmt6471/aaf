@@ -845,10 +845,12 @@ input[type="date"],
 
     .table-wrapper {
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .records-table {
-        min-width: 600px;
+        min-width: 500px;
+        width: 100%;
     }
 
     .records-table th,

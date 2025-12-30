@@ -377,19 +377,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentYear = new Date().getFullYear();
 
             console.log('Total rows:', rows.length);
-            console.log('First row sample:', rows[0]);
+
+            // 첫 번째 행의 모든 컬럼 출력
+            if (rows.length > 0) {
+                const firstRow = rows[0].c;
+                console.log('=== First row all columns ===');
+                firstRow.forEach((cell, index) => {
+                    const columnLetter = String.fromCharCode(65 + index);
+                    console.log(`Column ${index} (${columnLetter}):`, cell?.v || cell?.f || 'null');
+                });
+                console.log('=== End of columns ===');
+            }
 
             const allRecords = rows.map((row, index) => {
                 const cells = row.c;
-
-                // 첫 3개 행만 로그 출력
-                if (index < 3) {
-                    console.log(`Row ${index}:`, {
-                        reviewStatus: cells[8],
-                        approvalStatus: cells[10],
-                        startDate: cells[4]
-                    });
-                }
 
                 return {
                     submitDate: cells[0]?.f || cells[0]?.v || '',  // A: 접수일자
