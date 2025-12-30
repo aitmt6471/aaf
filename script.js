@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Google Apps Script Web App URL (for submission)
  */
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwKZoWmYZLoeM0rW0eHXMQepWRw66wGqCjPWJpQF29JvrfW-bbkoG5vqDMY4XZJQ08vyQ/exec';
@@ -439,9 +439,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Format date
             const dateStr = formatDate(record.startDate, record.endDate);
 
-            // Format time
-            const timeStr = record.time || '-';
-
             // Get status badges
             const reviewBadge = getStatusBadge(record.reviewStatus);
             const approvalBadge = getStatusBadge(record.approvalStatus);
@@ -449,8 +446,6 @@ document.addEventListener('DOMContentLoaded', () => {
             row.innerHTML = `
                 <td>${dateStr}</td>
                 <td><strong>${record.type}</strong></td>
-                <td>${timeStr}</td>
-                <td>${record.description || '-'}</td>
                 <td>${reviewBadge}</td>
                 <td>${approvalBadge}</td>
             `;
@@ -464,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const end = new Date(endDate);
 
         const formatSingle = (date) => {
-            const year = date.getFullYear();
+            const year = String(date.getFullYear()).slice(-2); // 2025 → 25
             const month = date.getMonth() + 1;
             const day = date.getDate();
             return `${year}.${month}.${day}`;
