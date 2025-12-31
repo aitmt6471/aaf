@@ -336,6 +336,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const department = document.getElementById('lookupDepartment').value;
         const name = document.getElementById('lookupName').value;
+        const startDateStr = document.getElementById('startDate').value;
+        const endDateStr = document.getElementById('endDate').value;
         const lookupBtn = lookupForm.querySelector('.lookup-btn');
         const btnText = lookupBtn.querySelector('.btn-text');
         const loader = lookupBtn.querySelector('.loader');
@@ -406,10 +408,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             });
 
-            // 필터링: 소속, 성명만
-            const filteredRecords = allRecords.filter(record =>
-                record.department === department && record.name === name
-            );
+            // 날짜 범위 객체 생성
+            const startDate = startDateStr ? new Date(startDateStr) : null;
+            const endDate = endDateStr ? new Date(endDateStr) : null;
+            // 종료일은 23:59:59까지 포함하도록 설정
+            if (endDate) {
+                endDate.setHours(23, 59, 59, 999);
+            }
+
+            // 필터링: 소속, 성명, 날짜 범위
+            const filteredRecords = allRecords.filter(record => {
+                if (record.department !== department || record.name !== name) {
+                    return false;
+                }
+
+                // 날짜 범위 필터링
+                if (startDate || endDate) {
+                    const recordDate = parseKoreanDate(record.startDate);
+                    if (!recordDate) return true; // 날짜 파싱 실패 시 포함
+
+                    if (startDate && recordDate < startDate) return false;
+                    if (endDate && recordDate > endDate) return false;
+                }
+
+                return true;
+            });
 
             if (filteredRecords && filteredRecords.length > 0) {
                 // Calculate leave counts
@@ -476,17 +499,29 @@ document.addEventListener('DOMContentLoaded', () => {
     function parseKoreanDate(dateStr) {
         if (!dateStr) return null;
 
+        // 문자열로 변환
+        const str = String(dateStr);
+
         // "2025. 11. 6 오후 5:00:00" 형식 파싱
-        const koreanMatch = dateStr.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})/);
-        if (koreanMatch) {
-            const year = parseInt(koreanMatch[1]);
-            const month = parseInt(koreanMatch[2]) - 1; // 0-based
-            const day = parseInt(koreanMatch[3]);
+        let match = str.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})/);
+        if (match) {
+            const year = parseInt(match[1]);
+            const month = parseInt(match[2]) - 1; // 0-based
+            const day = parseInt(match[3]);
+            return new Date(year, month, day);
+        }
+
+        // "2025-12-05 9:00" 또는 "2025-12-05" 형식 파싱
+        match = str.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (match) {
+            const year = parseInt(match[1]);
+            const month = parseInt(match[2]) - 1; // 0-based
+            const day = parseInt(match[3]);
             return new Date(year, month, day);
         }
 
         // 일반 날짜 형식 시도
-        const date = new Date(dateStr);
+        const date = new Date(str);
         if (!isNaN(date.getTime())) {
             return date;
         }
@@ -526,4 +561,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // 그 외 모든 경우 '-' 표시
         return '<span class="status-badge status-none">-</span>';
     }
+
+    // 페이지 로드 시 날짜 기본값 설정
+    const currentYear = new Date().getFullYear();
+    document.getElementById('startDate').value = `${currentYear}-01-01`;
+    document.getElementById('endDate').value = `${currentYear}-12-31`;
 });
