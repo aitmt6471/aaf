@@ -844,18 +844,45 @@ input[type="date"],
     }
 
     .table-wrapper {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+        overflow-x: visible;
+        /* 가로 스크롤 제거 */
     }
 
     .records-table {
-        min-width: 500px;
+        min-width: auto;
+        /* 최소 너비 제거 */
         width: 100%;
+        table-layout: fixed;
+        /* 고정 레이아웃 */
     }
 
     .records-table th,
     .records-table td {
-        padding: 12px 8px;
-        font-size: 12px;
+        padding: 10px 4px;
+        /* 패딩 축소 */
+        font-size: 11px;
+        /* 글씨 크기 축소 */
+        word-break: keep-all;
+        white-space: nowrap;
+    }
+
+    /* 날짜 컴럼 너비 */
+    .records-table th:first-child,
+    .records-table td:first-child {
+        width: 35%;
+    }
+
+    /* 근태구분 컴럼 */
+    .records-table th:nth-child(2),
+    .records-table td:nth-child(2) {
+        width: 25%;
+    }
+
+    /* 검토상태, 승인상태 컴럼 */
+    .records-table th:nth-child(3),
+    .records-table td:nth-child(3),
+    .records-table th:nth-child(4),
+    .records-table td:nth-child(4) {
+        width: 20%;
     }
 }
