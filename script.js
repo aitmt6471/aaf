@@ -338,8 +338,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const name = document.getElementById('lookupName').value;
 
         // 디버깅: 요소 존재 확인
-        const startDateElement = document.getElementById('startDate');
-        const endDateElement = document.getElementById('endDate');
+        const startDateElement = document.getElementById('lookupStartDate');
+        const endDateElement = document.getElementById('lookupEndDate');
 
         console.log('Date elements:', {
             startDateElement: startDateElement,
