@@ -409,6 +409,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             // 날짜 범위 객체 생성
+            console.log('Input values:', { startDateStr, endDateStr });
+
             const startDate = startDateStr ? new Date(startDateStr) : null;
             const endDate = endDateStr ? new Date(endDateStr) : null;
             // 종료일은 23:59:59까지 포함하도록 설정
@@ -539,6 +541,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // "2025. 11. 6 오후 5:00:00" 형식 파싱
         match = str.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})/);
+        if (match) {
+            const year = parseInt(match[1]);
+            const month = parseInt(match[2]) - 1; // 0-based
+            const day = parseInt(match[3]);
+            return new Date(year, month, day);
+        }
+
+        // "2025-11-28 8:00:00" 형식 파싱 (시간 포함, 초 포함)
+        match = str.match(/(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
         if (match) {
             const year = parseInt(match[1]);
             const month = parseInt(match[2]) - 1; // 0-based
