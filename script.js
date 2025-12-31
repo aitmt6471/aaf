@@ -608,8 +608,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return '<span class="status-badge status-none">-</span>';
     }
 
-    // 페이지 로드 시 날짜 기본값 설정
-    const currentYear = new Date().getFullYear();
-    document.getElementById('startDate').value = `${currentYear}-01-01`;
-    document.getElementById('endDate').value = `${currentYear}-12-31`;
+    // 페이지 로드 시 날짜 기본값 설정 (빈 값으로 변경)
+    // 사용자가 직접 날짜를 선택하도록 함
+    // document.getElementById('startDate').value = '';
+    // document.getElementById('endDate').value = '';
 });
