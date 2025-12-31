@@ -416,6 +416,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 endDate.setHours(23, 59, 59, 999);
             }
 
+            console.log('Date filter:', { startDate, endDate });
+
             // 필터링: 소속, 성명, 날짜 범위
             const filteredRecords = allRecords.filter(record => {
                 if (record.department !== department || record.name !== name) {
@@ -425,7 +427,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 날짜 범위 필터링
                 if (startDate || endDate) {
                     const recordDate = parseKoreanDate(record.startDate);
-                    if (!recordDate) return true; // 날짜 파싱 실패 시 포함
+
+                    // 날짜 파싱 실패 시 제외 (변경됨)
+                    if (!recordDate) {
+                        console.log('Failed to parse date:', record.startDate);
+                        return false;
+                    }
 
                     if (startDate && recordDate < startDate) return false;
                     if (endDate && recordDate > endDate) return false;
