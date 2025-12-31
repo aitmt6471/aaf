@@ -336,8 +336,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const department = document.getElementById('lookupDepartment').value;
         const name = document.getElementById('lookupName').value;
-        const startDateStr = document.getElementById('startDate').value;
-        const endDateStr = document.getElementById('endDate').value;
+
+        // 디버깅: 요소 존재 확인
+        const startDateElement = document.getElementById('startDate');
+        const endDateElement = document.getElementById('endDate');
+
+        console.log('Date elements:', {
+            startDateElement: startDateElement,
+            endDateElement: endDateElement,
+            startDateExists: !!startDateElement,
+            endDateExists: !!endDateElement
+        });
+
+        const startDateStr = startDateElement ? startDateElement.value : '';
+        const endDateStr = endDateElement ? endDateElement.value : '';
+
         const lookupBtn = lookupForm.querySelector('.lookup-btn');
         const btnText = lookupBtn.querySelector('.btn-text');
         const loader = lookupBtn.querySelector('.loader');
