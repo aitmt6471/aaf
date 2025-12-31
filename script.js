@@ -509,8 +509,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // 문자열로 변환
         const str = String(dateStr);
 
+        // "Date(2025,10,2,17,0)" 형식 파싱 (Google Sheets API 형식)
+        // 주의: 월(month)은 0-based (0=1월, 11=12월)
+        let match = str.match(/Date\((\d{4}),(\d{1,2}),(\d{1,2})/);
+        if (match) {
+            const year = parseInt(match[1]);
+            const month = parseInt(match[2]); // 이미 0-based이므로 그대로 사용
+            const day = parseInt(match[3]);
+            return new Date(year, month, day);
+        }
+
         // "2025. 11. 6 오후 5:00:00" 형식 파싱
-        let match = str.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})/);
+        match = str.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})/);
         if (match) {
             const year = parseInt(match[1]);
             const month = parseInt(match[2]) - 1; // 0-based
