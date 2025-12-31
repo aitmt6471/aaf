@@ -428,14 +428,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (startDate || endDate) {
                     const recordDate = parseKoreanDate(record.startDate);
 
-                    // 날짜 파싱 실패 시 제외 (변경됨)
+                    // 날짜 파싱 실패 시 제외
                     if (!recordDate) {
                         console.log('Failed to parse date:', record.startDate);
                         return false;
                     }
 
-                    if (startDate && recordDate < startDate) return false;
-                    if (endDate && recordDate > endDate) return false;
+                    // 디버깅: 파싱된 날짜 출력
+                    console.log('Record:', {
+                        name: record.name,
+                        type: record.type,
+                        startDate: record.startDate,
+                        parsedDate: recordDate.toISOString().split('T')[0],
+                        filterStart: startDate ? startDate.toISOString().split('T')[0] : 'none',
+                        filterEnd: endDate ? endDate.toISOString().split('T')[0] : 'none'
+                    });
+
+                    if (startDate && recordDate < startDate) {
+                        console.log('→ Filtered out: before start date');
+                        return false;
+                    }
+                    if (endDate && recordDate > endDate) {
+                        console.log('→ Filtered out: after end date');
+                        return false;
+                    }
+
+                    console.log('→ Included');
                 }
 
                 return true;
