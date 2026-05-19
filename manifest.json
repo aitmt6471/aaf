@@ -1,0 +1,25 @@
+{
+  "name": "AIT TPM 현장",
+  "short_name": "AIT TPM",
+  "description": "설비 고장 접수 및 조치 관리",
+  "start_url": "/TPM/report.html",
+  "scope": "/TPM/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1d4ed8",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/TPM/ait-logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%231d4ed8'/><text y='330' x='256' font-size='210' text-anchor='middle' font-family='Arial,sans-serif' font-weight='800' fill='white'>AIT</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

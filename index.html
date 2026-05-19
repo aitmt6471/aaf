@@ -1,296 +1,1575 @@
 ﻿<!DOCTYPE html>
 <html lang="ko">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>근태계</title>
-    <meta name="description" content="근태 관리 시스템">
-
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <link rel="stylesheet" href="style.css">
-</head>
-
-<body>
-    <div class="background-shapes">
-        <div class="shape shape-1"></div>
-        <div class="shape shape-2"></div>
-        <div class="shape shape-3"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>설비 이력카드 시스템</title>
+    <link rel="icon" href="data:,">
+    <meta name="description" content="설비 이상 발생 및 조치 관리 시스템" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-logo">
+          <h1>
+            <img src="ait-logo.png" alt="AIT" style="height:24px;vertical-align:middle;" /> 설비이력 시스템 </h1>
+            <p>AIT Equipment Manager</p>
+          </div>
+          <div class="sidebar-nav">
+            <div class="nav-section">MAIN</div>
+            <div class="nav-item active" onclick="showPage('page-dashboard')">
+              <span class="nav-icon">📊</span>
+              <span>대시보드</span>
+            </div>
+            <div class="nav-item" onclick="showPage('page-equip-list')">
+              <span class="nav-icon">🏭</span>
+              <span>설비 목록</span>
+            </div>
+            <div class="nav-item" onclick="showPage('page-spare-parts')">
+              <span class="nav-icon">⚙️</span>
+              <span>스페어 파트</span>
+            </div>
+            <div class="nav-section">MANAGEMENT</div>
+            <div class="nav-item" onclick="showPage('page-reports')">
+              <span class="nav-icon">📋</span>
+              <span>고장접수 관리</span>
+              <span class="badge" id="badge-open">0</span>
+            </div>
+            <div class="nav-item" onclick="showPage('page-pm-plan')">
+              <span class="nav-icon">📅</span>
+              <span>정기점검 관리</span>
+            </div>
+            <div class="nav-section">SYSTEM</div>
+            <div class="nav-item" onclick="showPage('page-stats')">
+              <span class="nav-icon">📈</span>
+              <span>통계 / MTTR</span>
+            </div>
+            <div class="nav-item" onclick="showPage('page-config')">
+              <span class="nav-icon">⚙️</span>
+              <span>설정</span>
+            </div>
+          </div>
+        </aside>
+        <div class="main">
+          <div class="topbar">
+            <div class="page-title" id="page-title">대시보드</div>
+            <div class="connection-badge">
+              <div class="conn-dot" id="conn-dot">
+              </div>
+              <span id="conn-text">연결 확인 중...</span>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="refreshCurrent()">🔄 새로고침</button>
+          </div>
+          <div class="content">
+            <!-- DASHBOARD -->
+            <div class="page active" id="page-dashboard">
+              <div class="stats-row" style="grid-template-columns:repeat(5,minmax(0,1fr))">
+                <div class="stat-card">
+                  <div class="stat-label">전체 설비</div>
+                  <div class="stat-value primary" id="ds-total">—</div>
+                  <div class="stat-meta">등록 설비</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">정상 운전</div>
+                  <div class="stat-value green" id="ds-ok">—</div>
+                  <div class="stat-meta">가동 중</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">유휴</div>
+                  <div class="stat-value" id="ds-idle" style="color:var(--text3)">—</div>
+                  <div class="stat-meta">미사용 설비</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">고장 중</div>
+                  <div class="stat-value red" id="ds-fail">—</div>
+                  <div class="stat-meta">즉시 조치 필요</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">미완료 접수</div>
+                  <div class="stat-value yellow" id="ds-open">—</div>
+                  <div class="stat-meta">처리 대기 중</div>
+                </div>
+              </div>
+              <div class="card" style="margin-bottom:0">
+                <div class="card-header">
+                  <span class="card-title">⏱️ 미처리 지연 현황</span>
+                  <span id="dash-delay-summary" style="font-size:12px;color:var(--red);font-weight:800"></span>
+                </div>
+                <div style="padding:6px 20px;background:#fff7f7;border-bottom:1px solid #ffd6d6;font-size:12px;color:var(--text2)">⚠️ 접수 후 미처리 건 중 5분 이상 경과한 항목은 강조 표시됩니다.</div>
+                <div class="table-wrap" style="max-height:220px;overflow-y:auto">
+                  <table>
+                    <thead><tr><th>설비코드</th><th>설비명</th><th>설치소</th><th>접수일시</th><th>경과시간</th><th>현상</th><th>긴급도</th><th>상태</th><th>신고자</th></tr></thead>
+                    <tbody id="dash-delay-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="chart-grid">
+                <div class="chart-box">
+                  <div class="card-title" style="margin-bottom:12px">월별 고장 추이</div>
+                  <canvas id="ds-chart-monthly">
+                  </canvas>
+                </div>
+                <div class="chart-box">
+                  <div class="card-title" style="margin-bottom:12px">라인별 월별 고장 추이</div>
+                  <canvas id="ds-chart-location"></canvas>
+                </div>
+                <div class="chart-box">
+                  <div class="card-title" style="margin-bottom:12px">상위 MTBF 설비 (일)</div>
+                  <canvas id="ds-chart-mtbf"></canvas>
+                </div>
+                <div class="chart-box">
+                  <div class="card-title" style="margin-bottom:12px">상위 MTTR 설비 (분)</div>
+                  <canvas id="ds-chart-mttr"></canvas>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-title">최근 고장접수</span>
+                  <button class="btn btn-sm btn-secondary" onclick="showPage('page-reports')">전체 보기</button>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>라인</th>
+                        <th>#</th>
+                        <th>설비코드</th>
+                        <th>설비명</th>
+                        <th style="min-width:140px">증상</th>
+                        <th>우선순위</th>
+                        <th>상태</th>
+                        <th>신고자</th>
+                        <th>접수일시</th>
+                      </tr>
+                    </thead>
+                    <tbody id="ds-recent">
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <!-- EQUIP LIST -->
+            <div class="page" id="page-equip-list">
+              <div class="card" style="margin-bottom:16px">
+                <div class="card-body" style="padding:14px 20px">
+                  <div class="toolbar">
+                    <input class="form-control search-input" id="eq-search" placeholder="설비코드, 설비명 검색..." oninput="filterEquipList()" />
+                    <select class="form-control" id="eq-loc-filter" style="width:160px" onchange="filterEquipList()">
+                      <option value="">전체 설치소</option>
+                    </select>
+                    <select class="form-control" id="eq-status-filter" style="width:140px" onchange="filterEquipList()">
+                      <option value="">전체 상태</option>
+                      <option>정상</option>
+                      <option>고장</option>
+                      <option>점검중</option>
+                      <option>유휴</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="exportEquipToCSV()">📄 엑셀 저장</button>
+                    <button class="btn btn-primary" onclick="openEquipForm()">➕ 설비 추가</button>
+                  </div>
+                  <!-- 범례 + 빠른 필터 -->
+                  <div style="display:flex;align-items:center;gap:16px;margin-top:12px;flex-wrap:wrap">
+                    <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)">
+                      <strong>범례:</strong>
+                      <span class="badge good">정상/가동중</span>
+                      <span class="badge warn">점검필요</span>
+                      <span class="badge bad">고장</span>
+                      <span class="badge muted">유휴</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+                      <button class="btn btn-sm btn-secondary" id="eq-tab-all" onclick="setEquipTab('')" style="font-weight:700">전체</button>
+                      <button class="btn btn-sm btn-secondary" id="eq-tab-active" onclick="setEquipTab('active')">가동중만</button>
+                      <button class="btn btn-sm btn-secondary" id="eq-tab-idle" onclick="setEquipTab('유휴')">유휴만</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-title">설비 목록</span>
+                  <span id="eq-count" style="font-size:12px;color:var(--text3);font-weight:700">
+                  </span>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th style="width:48px">NO.</th>
+                        <th>라인</th>
+                        <th>설비코드</th>
+                        <th>설비명</th>
+                        <th>제작사</th>
+                        <th>담당</th>
+                        <th>상태</th>
+                        <th>이력수</th>
+                        <th>점검/접수</th>
+                        <th style="text-align:center">정기점검</th>
+                        <th style="min-width:140px">설비중요도평가</th>
+                        <th style="width:140px">관리</th>
+                      </tr>
+                    </thead>
+                    <tbody id="eq-tbody">
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <!-- REPORTS -->
+            <div class="page" id="page-reports">
+              <div class="card" style="margin-bottom:16px;flex-shrink:0">
+                <div class="card-body" style="padding:12px 20px">
+                  <div class="toolbar" style="flex-wrap:wrap;gap:8px">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                      <select class="form-control" id="rp-year-select" style="width:90px" onchange="renderReportBoard()"></select>
+                      <button class="btn btn-sm btn-secondary" onclick="addReportYear()" title="다음 년도 추가">+</button>
+                      <select class="form-control" id="rp-month-select" style="width:75px" onchange="renderReportBoard()">
+                        <option value="0">전체</option>
+                        <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+                        <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+                        <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+                        <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+                      </select>
+                      <input class="form-control search-input" id="rp-search" placeholder="설비코드, 증상 검색..." style="width:200px" oninput="renderReportBoard()" />
+                    </div>
+                    <!-- 고장 접수는 현장(report.html)에서만 등록 -->
+                  </div>
+                </div>
+              </div>
+              <!-- 기간별 통계 요약 -->
+              <div style="position:relative;margin-bottom:16px">
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+                  <div class="card" style="text-align:center;padding:14px 10px">
+                    <div style="font-size:11px;color:var(--text3);margin-bottom:4px">기간 내 총 접수</div>
+                    <div id="rp-stat-total" style="font-size:26px;font-weight:900;color:var(--primary)">0</div>
+                  </div>
+                  <div class="card" style="text-align:center;padding:14px 10px">
+                    <div style="font-size:11px;color:var(--text3);margin-bottom:4px">확인중</div>
+                    <div id="rp-stat-confirm" style="font-size:26px;font-weight:900;color:#f59e0b">0</div>
+                  </div>
+                  <div class="card" style="text-align:center;padding:14px 10px">
+                    <div style="font-size:11px;color:var(--text3);margin-bottom:4px">수리중</div>
+                    <div id="rp-stat-repair" style="font-size:26px;font-weight:900;color:#ef4444">0</div>
+                  </div>
+                  <div class="card" style="text-align:center;padding:14px 10px;position:relative">
+                    <div style="font-size:11px;color:var(--text3);margin-bottom:4px">완료</div>
+                    <div id="rp-stat-done" style="font-size:26px;font-weight:900;color:#16a34a">0</div>
+                    <div style="position:absolute;top:8px;right:10px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:700;color:#16a34a;line-height:1.6" id="rp-stat-rate">0%</div>
+                  </div>
+                </div>
+              </div>
+              <!-- 미처리 지연 현황 -->
+              <div class="card" style="margin-bottom:16px">
+                <div class="card-header">
+                  <span class="card-title">⏱️ 미처리 지연 현황</span>
+                  <span id="rp-delay-summary" style="font-size:12px;color:var(--red);font-weight:800"></span>
+                </div>
+                <div style="padding:6px 20px;background:#fff7f7;border-bottom:1px solid #ffd6d6;font-size:12px;color:var(--text2)">⚠️ 접수 후 미처리 건 중 5분 이상 경과한 항목은 강조 표시됩니다.</div>
+                <div class="table-wrap" style="max-height:200px;overflow-y:auto">
+                  <table>
+                    <thead><tr><th>설비코드</th><th>설비명</th><th>설치소</th><th>접수일시</th><th>경과시간</th><th>현상</th><th>긴급도</th><th>상태</th><th>신고자</th></tr></thead>
+                    <tbody id="rp-delay-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="kanban" id="kanban-board">
+                <div class="kanban-col">
+                  <div class="kanban-header 접수">📥 접수 <span class="badge" id="k-cnt-접수">0</span>
+                </div>
+                <div class="kanban-body" id="k-접수">
+                </div>
+              </div>
+              <div class="kanban-col">
+                <div class="kanban-header 확인중">🔍 확인중 <span class="badge" id="k-cnt-확인중">0</span>
+              </div>
+              <div class="kanban-body" id="k-확인중">
+              </div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-header 수리중">🔨 수리중 <span class="badge" id="k-cnt-수리중">0</span>
+            </div>
+            <div class="kanban-body" id="k-수리중">
+            </div>
+          </div>
+          <div class="kanban-col">
+            <div class="kanban-header 완료">✅ 완료 <span class="badge" id="k-cnt-완료">0</span>
+          </div>
+          <div class="kanban-body" id="k-완료">
+          </div>
+        </div>
+      </div>
     </div>
-
-    <main class="container">
-        <header class="header">
-            <div class="header-content">
-                <img src="ait-logo.png" alt="AIT Logo" class="logo">
-                <h1>근태계</h1>
-            </div>
-            <p id="headerDescription">정확한 근태 관리를 위해 특이사항을 입력해 주세요.</p>
-
-            <!-- 탭 네비게이션 -->
-            <div class="tabs">
-                <button type="button" class="tab-btn active" data-tab="submit">신청</button>
-                <button type="button" class="tab-btn" data-tab="lookup">조회</button>
-            </div>
-        </header>
-
-        <!-- 신청 섹션 -->
-        <div id="submitSection" class="tab-content active">
-            <form id="attendanceForm" class="attendance-form">
-                <div class="form-group">
-                    <label for="department">소속</label>
-                    <div class="select-wrapper">
-                        <select id="department" name="department" required>
-                            <option value="" disabled selected>선택해 주세요</option>
-                            <option value="생산관리팀">생산관리팀</option>
-                            <option value="품질관리팀">품질관리팀</option>
-                            <option value="SCM팀">SCM팀</option>
-                            <option value="사출기술팀">사출기술팀</option>
-                            <option value="영업물류팀">영업물류팀</option>
-                            <option value="미화">미화</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="name">성명</label>
-                    <input type="text" id="name" name="name" placeholder="홍길동" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="position">직위</label>
-                    <div class="select-wrapper">
-                        <select id="position" name="position" required>
-                            <option value="사원">사원</option>
-                            <option value="주임">주임</option>
-                            <option value="대리">대리</option>
-                            <option value="과장">과장</option>
-                            <option value="차장">차장</option>
-                            <option value="부장">부장</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="startDate">근태 발생 일자</label>
-                    <input type="date" id="startDate" name="startDate" required>
-                </div>
-
-                <div class="form-group">
-                    <label>시작 시간</label>
-                    <div class="time-input-wrapper">
-                        <div class="select-wrapper time-select">
-                            <select id="startHour" name="startHour" required>
-                                <option value="">시</option>
-                            </select>
-                        </div>
-                        <span class="time-separator">:</span>
-                        <div class="select-wrapper time-select">
-                            <select id="startMinute" name="startMinute" required>
-                                <option value="">분</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="endDate">근태 종료 일자</label>
-                    <input type="date" id="endDate" name="endDate" required>
-                </div>
-
-                <div class="form-group">
-                    <label>종료 시간</label>
-                    <div class="time-input-wrapper">
-                        <div class="select-wrapper time-select">
-                            <select id="endHour" name="endHour" required>
-                                <option value="">시</option>
-                            </select>
-                        </div>
-                        <span class="time-separator">:</span>
-                        <div class="select-wrapper time-select">
-                            <select id="endMinute" name="endMinute" required>
-                                <option value="">분</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="type">근태구분</label>
-                    <div class="select-wrapper">
-                        <select id="type" name="type" required>
-                            <option value="" disabled selected>선택해 주세요</option>
-                            <option value="잔업">잔업</option>
-                            <option value="특근">특근</option>
-                            <option value="야간">야간</option>
-                            <option value="결근">결근</option>
-                            <option value="조퇴">조퇴</option>
-                            <option value="지각">지각</option>
-                            <option value="외출">외출</option>
-                            <option value="연차">연차</option>
-                            <option value="반차">반차</option>
-                            <option value="경조">경조</option>
-                            <option value="조출">조출</option>
-                            <option value="근태누락">근태누락</option>
-                            <option value="휴직">휴직</option>
-                            <option value="자진퇴사">자진퇴사</option>
-                            <option value="권고사직">권고사직</option>
-                            <option value="취소">취소</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="description">사유 및 상세 내용</label>
-                    <textarea id="description" name="description" rows="4" placeholder="상세 사유를 입력해 주세요."
-                        required></textarea>
-                </div>
-
-                <button type="submit" class="submit-btn">
-                    <span class="btn-text">제출하기</span>
-                    <span class="loader" style="display: none;"></span>
-                </button>
-            </form>
-
-            <div id="notification" class="notification hidden">
-                <p id="notificationMessage"></p>
-            </div>
+    <!-- SPARE PARTS -->
+    <div class="page" id="page-spare-parts">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-body" style="padding:14px 20px">
+          <div class="toolbar">
+            <input class="form-control search-input" id="parts-search" placeholder="파트코드, 파트명, 규격 검색..." oninput="renderPartsList()" />
+            <button class="btn btn-primary" onclick="openPartsMasterForm(0)">➕ 파트 등록</button>
+            <button class="btn btn-secondary" onclick="loadParts()">🔄 다시 조회</button>
+          </div>
         </div>
-
-        <!-- 조회 섹션 -->
-        <div id="lookupSection" class="tab-content hidden">
-            <form id="lookupForm" class="lookup-form">
-                <div class="lookup-inputs">
-                    <div class="form-group">
-                        <label for="lookupDepartment">소속</label>
-                        <div class="select-wrapper">
-                            <select id="lookupDepartment" name="lookupDepartment" required>
-                                <option value="" disabled selected>선택해 주세요</option>
-                                <option value="생산관리팀">생산관리팀</option>
-                                <option value="품질관리팀">품질관리팀</option>
-                                <option value="SCM팀">SCM팀</option>
-                                <option value="사출기술팀">사출기술팀</option>
-                                <option value="영업물류팀">영업물류팀</option>
-                                <option value="미화">미화</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="lookupName">성명</label>
-                        <input type="text" id="lookupName" name="lookupName" placeholder="홍길동" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="lookupStartDate">시작일</label>
-                        <input type="date" id="lookupStartDate" name="lookupStartDate">
-                    </div>
-                    <div class="form-group">
-                        <label for="lookupEndDate">종료일</label>
-                        <input type="date" id="lookupEndDate" name="lookupEndDate">
-                    </div>
-                    <button type="submit" class="lookup-btn">
-                        <span class="btn-text">조회</span>
-                        <span class="loader" style="display: none;"></span>
-                    </button>
-                </div>
-            </form>
-
-            <!-- 통계 카드 -->
-            <div class="stats-container hidden" id="statsContainer">
-                <div class="stats-cards">
-                    <div class="stat-card">
-                        <div class="stat-icon">📅</div>
-                        <div class="stat-content">
-                            <h3>연차 사용</h3>
-                            <div class="stat-value-wrapper">
-                                <span class="stat-value" id="annualLeaveCount">0</span>
-                                <span class="stat-label">회</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">⏰</div>
-                        <div class="stat-content">
-                            <h3>반차 사용</h3>
-                            <div class="stat-value-wrapper">
-                                <span class="stat-value" id="halfLeaveCount">0</span>
-                                <span class="stat-label">회</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 조회 결과 테이블 -->
-            <div class="table-container hidden" id="tableContainer">
-                <h3 class="table-title">근태 신청 내역</h3>
-                <div class="table-wrapper">
-                    <table class="records-table">
-                        <thead>
-                            <tr>
-                                <th>날짜</th>
-                                <th>근태구분</th>
-
-
-                                <th>검토상태</th>
-                                <th>승인상태</th>
-                            </tr>
-                        </thead>
-                        <tbody id="recordsTableBody">
-                            <!-- 조회 결과가 여기에 표시됩니다 -->
-                        </tbody>
-                    </table>
-                </div>
-                <p class="no-records hidden" id="noRecords">조회된 근태 기록이 없습니다.</p>
-            </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">⚙️ 스페어 파트 관리</span>
         </div>
-
-        <!-- 제출 확인 모달 -->
-        <div id="confirmModal" class="modal hidden">
-            <div class="modal-content">
-                <h2>제출 내용 확인</h2>
-                <p class="modal-description">아래 내용이 맞는지 확인해 주세요.</p>
-                <div class="confirm-details">
-                    <div class="detail-row">
-                        <span class="detail-label">소속:</span>
-                        <span class="detail-value" id="confirmDepartment"></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">이름:</span>
-                        <span class="detail-value" id="confirmName"></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">근태 발생일자:</span>
-                        <span class="detail-value" id="confirmStartDate"></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">시작 시간:</span>
-                        <span class="detail-value" id="confirmStartTime"></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">근태 종료일자:</span>
-                        <span class="detail-value" id="confirmEndDate"></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">종료 시간:</span>
-                        <span class="detail-value" id="confirmEndTime"></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">근태구분:</span>
-                        <span class="detail-value" id="confirmType"></span>
-                    </div>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="modal-btn cancel-btn" id="cancelSubmit">취소</button>
-                    <button type="button" class="modal-btn confirm-btn" id="confirmSubmit">확인</button>
-                </div>
-            </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>파트코드</th>
+                <th>파트명</th>
+                <th>규격</th>
+                <th>단위</th>
+                <th>표준조달일</th>
+                <th>중요도</th>
+                <th>현재재고</th>
+                <th>안전재고</th>
+                <th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="parts-tbody">
+              <tr class="loading-row">
+                <td colspan="9">조회 전입니다.</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-    </main>
+      </div>
+    </div>
+    <!-- PM PLAN -->
+    <div class="page" id="page-pm-plan">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <!-- 상단: 전체 설비 PM 계획 현황 개요 -->
+        <div class="card" style="min-height:340px;display:flex;flex-direction:column">
+          <div class="card-header" style="flex-shrink:0;padding:8px 14px">
+            <span class="card-title" style="font-size:13px">📋 전체 설비 PM 계획 현황</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input class="form-control" id="pm-overview-search" placeholder="설비 검색..." style="width:140px;font-size:12px;padding:2px 8px" oninput="renderPMOverviewTable()">
+              <span style="font-size:11px;color:var(--text2);white-space:nowrap">⚪ 미계획 &nbsp;📅 계획됨 &nbsp;✅ 완료됨</span>
+              <select class="form-control" id="pm-year-select" style="width:76px;font-size:12px;padding:2px 6px" onchange="loadPMPlan()">
+                <option>2026</option><option>2025</option>
+              </select>
+              <button class="btn btn-sm btn-secondary" onclick="addNewYear()" style="padding:2px 8px">+년</button>
+              <button class="btn btn-sm btn-primary" id="pm-plan-save-btn" onclick="savePMSingleEquip()" style="display:none">💾 저장</button>
+            </div>
+          </div>
+          <div id="pm-overview-table" style="overflow:auto;min-height:220px;max-height:340px"></div>
+        </div>
+        <!-- 하단: 설비 액션 카드 -->
+        <div class="card" style="min-height:200px;display:flex;flex-direction:column;justify-content:center">
+          <div id="pm-no-equip-hint" style="text-align:center;padding:48px 24px;color:var(--text3)">
+            <div style="font-size:32px;margin-bottom:10px">↑</div>
+            <div style="font-size:14px">위에서 설비를 선택하세요</div>
+          </div>
+          <div id="pm-equip-card" style="display:none;padding:20px 24px">
+            <div style="margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+              <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.5px;margin-bottom:6px">선택된 설비</div>
+              <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+                <span id="pm-equip-card-code" style="font-size:20px;font-weight:800"></span>
+                <span id="pm-equip-card-name" style="font-size:14px;color:var(--text2)"></span>
+                <span id="pm-master-count" style="font-size:12px;color:var(--text3);font-weight:700;margin-left:auto">총 0개</span>
+              </div>
+              <div id="pm-equip-card-plan" style="margin-top:8px;font-size:12px;color:var(--text2)"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+              <button class="btn btn-primary" onclick="openPMItemsModal()" style="padding:16px 8px;font-size:13px;display:flex;flex-direction:column;align-items:center;gap:6px">
+                <span style="font-size:22px">📋</span><span>항목관리</span>
+              </button>
+              <button class="btn btn-primary" id="pm-checksheet-btn" onclick="openPMChecksheet()" style="padding:16px 8px;font-size:13px;display:flex;flex-direction:column;align-items:center;gap:6px">
+                <span style="font-size:22px">✏️</span><span>체크시트입력</span>
+              </button>
+              <button class="btn" onclick="openPMHistoryModal()" style="padding:16px 8px;font-size:13px;background:#546e7a;color:#fff;border:none;border-radius:8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
+                <span style="font-size:22px">📂</span><span>이력조회</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- PM MASTER -->
+    <div class="page" id="page-pm-master">
+      <div style="display:flex;gap:16px;height:calc(100vh - 130px)">
+        <!-- 왼쪽: 설비 목록 패널 -->
+        <div style="width:280px;flex-shrink:0;display:flex;flex-direction:column;gap:10px">
+          <div class="card" style="flex-shrink:0">
+            <div class="card-body" style="padding:10px 12px">
+              <input class="form-control search-input" id="pm-equip-search" placeholder="설비코드, 설비명 검색..." oninput="renderPMEquipList()" style="margin:0" />
+            </div>
+          </div>
+          <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+            <div class="card-header" style="flex-shrink:0;padding:10px 14px">
+              <span class="card-title" style="font-size:13px">설비 목록</span>
+              <span id="pm-equip-list-count" style="font-size:11px;color:var(--text3)"></span>
+            </div>
+            <div id="pm-equip-list" style="flex:1;overflow-y:auto;border-top:1px solid var(--border)">
+              <div style="padding:20px;color:var(--text3);font-size:13px;text-align:center">로딩 중...</div>
+            </div>
+          </div>
+        </div>
+        <!-- 오른쪽: 점검항목 패널 -->
+        <div style="flex:1;display:flex;flex-direction:column;gap:10px;min-width:0">
+          <div class="card" style="flex-shrink:0">
+            <div class="card-body" style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
+              <span id="pm-master-selected-label" style="font-weight:700;font-size:14px;color:var(--text3)">← 설비를 선택하세요</span>
+              <button class="btn btn-primary btn-sm" onclick="openPMMasterForm()" id="pm-master-add-btn" style="display:none">➕ 점검 항목 추가</button>
+            </div>
+          </div>
+          <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+            <div class="card-header" style="flex-shrink:0">
+              <span class="card-title">점검 항목 마스터</span>
+              <span id="pm-master-count" style="font-size:12px;color:var(--text3);font-weight:700">총 0개</span>
+            </div>
+            <div class="table-wrap" style="flex:1;overflow-y:auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>점검 부위</th>
+                    <th>점검 항목</th>
+                    <th>점검 기준</th>
+                    <th>입력 유형</th>
+                    <th style="width:180px">실적 입력</th>
+                    <th style="width:140px">관리</th>
+                  </tr>
+                </thead>
+                <tbody id="pm-master-tbody">
+                  <tr class="loading-row">
+                    <td colspan="5">설비를 선택하세요.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- STATS -->
+    <div class="page" id="page-stats">
+      <!-- 1. 월별/설치소별 추이 -->
+      <div class="chart-grid" style="margin-bottom:20px">
+        <div class="chart-box">
+          <div class="card-title" style="margin-bottom:12px">월별 고장 추이</div>
+          <canvas id="chart-monthly"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="card-title" style="margin-bottom:12px">라인별 월별 고장 추이</div>
+          <canvas id="chart-location"></canvas>
+        </div>
+      </div>
+      <!-- 2. 라인별 고장 원인 분석 -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header">
+          <span class="card-title">🔍 라인별 고장 원인 분석</span>
+          <select id="stats-line-filter" class="form-control" style="width:180px;font-size:13px">
+            <option value="">전체 라인</option>
+          </select>
+        </div>
+        <div class="chart-grid" style="padding:16px">
+          <div class="chart-box" style="min-height:300px">
+            <div class="card-title" style="margin-bottom:12px">원인 대분류 Top 10</div>
+            <canvas id="chart-cause-main"></canvas>
+          </div>
+          <div class="chart-box" style="min-height:300px">
+            <div class="card-title" style="margin-bottom:12px">원인 소분류 Top 10</div>
+            <canvas id="chart-cause-sub"></canvas>
+          </div>
+        </div>
+      </div>
+      <!-- 3. 설비별 원인 분석 리포트 -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header">
+          <span class="card-title">🏭 설비별 고장 원인 분석 리포트</span>
+          <span style="font-size:12px;color:var(--text2)">위 라인 필터 연동 · 건수 내림차순</span>
+        </div>
+        <div class="table-wrap" style="max-height:480px;overflow-y:auto">
+          <table>
+            <thead style="position:sticky;top:0;z-index:1">
+              <tr>
+                <th>라인(설치소)</th>
+                <th>설비코드</th>
+                <th>설비명</th>
+                <th>원인 대분류</th>
+                <th>원인 소분류</th>
+                <th>건수</th>
+              </tr>
+            </thead>
+            <tbody id="equip-cause-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- 4. MTBF/MTTR 차트 -->
+      <div class="chart-grid" style="margin-bottom:20px">
+        <div class="chart-box">
+          <div class="card-title" style="margin-bottom:12px">설비별 MTBF (신뢰성)</div>
+          <canvas id="chart-mtbf"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="card-title" style="margin-bottom:12px">설비별 MTTR (보전성)</div>
+          <canvas id="chart-mttr"></canvas>
+        </div>
+      </div>
+      <!-- 5. MTBF/MTTR 브리핑 -->
+      <div class="card" style="margin-bottom:20px; background: var(--surface2);">
+        <div class="card-body" style="padding:20px;">
+          <h4 style="margin-bottom:12px; color:var(--primary);">📖 설비 관리 지표 브리핑 (MTBF & MTTR)</h4>
+          <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px;">
+            <div>
+              <b style="font-size:14px;">📉 MTBF - 평균 고장 간격</b>
+              <p style="margin-top:6px; font-size:12px; color:var(--text2); line-height:1.7;"> 설비가 고장 없이 정상 가동된 평균 시간입니다. 값이 높을수록 설비 신뢰성이 높습니다. </p>
+            </div>
+            <div>
+              <b style="font-size:14px;">🛠️ MTTR - 평균 수리 시간</b>
+              <p style="margin-top:6px; font-size:12px; color:var(--text2); line-height:1.7;"> 고장이 발생한 후 복구 완료까지 걸린 평균 시간입니다. 값이 낮을수록 복구성이 좋습니다. </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 6. MTBF/MTTR 테이블 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">설비별 MTBF / MTTR</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>설비코드</th>
+                <th>설비명</th>
+                <th>설치소</th>
+                <th>총 고장수</th>
+                <th>총 다운타임(분)</th>
+                <th>MTBF(일)</th>
+                <th>MTTR(분)</th>
+                <th>최근 고장일</th>
+              </tr>
+            </thead>
+            <tbody id="mtbf-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- CONFIG -->
+    <div class="page" id="page-config">
+      <div class="card" style="max-width:720px">
+        <div class="card-header">
+          <span class="card-title">⚙️ 시스템 설정</span>
+        </div>
+        <div class="card-body">
+          <div class="settings-section">
+            <div class="card-title" style="margin-bottom:12px">n8n Webhook 연결</div>
+            <div class="form-group" style="margin-bottom:12px">
+              <label class="form-label">Base URL</label>
+              <input class="form-control" id="cfg-base-url" placeholder="https://xxxx.ngrok.io/webhook">
+              <span style="font-size:11px;color:var(--text3);margin-top:4px"> 예: https://aitechn8n.ngrok.app/webhook </span>
+            </div>
+            <div style="display:flex;gap:10px">
+              <button class="btn btn-primary" onclick="saveConfig()">💾 저장</button>
+              <button class="btn btn-secondary" onclick="testConn()">🔌 연결 테스트</button>
+            </div>
+            <div id="cfg-result" style="margin-top:12px;font-size:12px">
+            </div>
+          </div>
+          <div class="settings-section" style="margin-top:24px">
+            <div class="card-title" style="margin-bottom:12px">이메일 / Slack 알림</div>
+            <p style="font-size:12px;color:var(--text3);line-height:1.8"> 알림 설정은 n8n 워크플로우 <strong>설비이력 시스템 — API 통합 허브</strong>에서 직접 수정하세요.<br /> • 이메일: <code>이메일긴급</code>, <code>이메일일반</code> 노드 → SMTP credential 연결<br /> • Slack: <code>Slack알림</code> 노드 → disabled 해제 + Slack credential 연결<br /> • Google Drive: <code>Drive업로드</code> 노드 → folderId 입력 </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- PM COPY FROM EQUIP MODAL -->
+<div class="modal-overlay" id="modal-pm-copy">
+  <div class="modal" style="max-width:560px;width:95vw">
+    <div class="modal-header">
+      <h2>📋 다른 설비에서 점검항목 복사</h2>
+      <button class="close-modal" onclick="closeModal('modal-pm-copy')">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:10px 14px;background:var(--surface2);border-radius:8px">
+        <span style="font-size:12px;color:var(--text3)">복사 대상:</span>
+        <span id="copy-dst-label" style="font-weight:700;font-size:14px"></span>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label">원본 설비 선택 <span style="color:var(--red)">*</span></label>
+        <select class="form-control" id="copy-src-equip" onchange="previewCopyItems()">
+          <option value="">-- 원본 설비 선택 --</option>
+        </select>
+      </div>
+      <div id="copy-preview" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;font-size:12px"></div>
+    </div>
+    <div class="modal-footer">
+      <span id="copy-status" style="font-size:12px;color:var(--text3);flex:1"></span>
+      <button class="btn btn-secondary" onclick="closeModal('modal-pm-copy')">취소</button>
+      <button class="btn btn-primary" onclick="saveCopyFromEquip()">📋 항목 복사</button>
+    </div>
+  </div>
+</div>
+<!-- PM MASTER EDIT MODAL -->
+<div class="modal-overlay" id="modal-pm-master-edit">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <h2 id="pm-master-edit-title">📝 점검 항목 편집</h2>
+      <button class="close-modal" onclick="closeModal('modal-pm-master-edit')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pm-master-id" />
+      <div class="form-group" style="margin-bottom:16px">
+        <label class="form-label">대상 설비 선택 <span style="color:var(--red)">*</span>
+      </label>
+      <select class="form-control" id="pm-master-equip-code">
+        <option value="">-- 설비 선택 --</option>
+      </select>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label">점검 부위</label>
+        <input class="form-control" id="pm-master-part" placeholder="예: 구동부, 압력계" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">입력 유형</label>
+        <select class="form-control" id="pm-master-type">
+          <option value="PASS_FAIL">O / X 판정</option>
+          <option value="NUMBER">수치 입력</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:16px; margin-bottom:16px">
+      <label class="form-label">점검 항목 <span style="color:var(--red)">*</span>
+    </label>
+    <input class="form-control" id="pm-master-item" placeholder="점검할 구체적 내용을 입력하세요." />
+  </div>
+  <div class="form-group">
+    <label class="form-label">점검 기준</label>
+    <textarea class="form-control" id="pm-master-criteria" style="min-height:80px" placeholder="예: 0.5±0.1Mpa, 누유 없을 것">
+    </textarea>
+  </div>
+  <div class="form-group" style="margin-top:16px">
+    <label class="form-label">기준 사진</label>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+      <label style="cursor:pointer;padding:6px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface2)">
+        📷 사진 선택
+        <input type="file" id="pm-master-photo-input" accept="image/*" style="display:none" onchange="uploadPMItemPhoto(this,'pm-master-photo-url')">
+      </label>
+      <span id="pm-master-photo-status" style="font-size:11px;color:var(--text3)"></span>
+      <input type="hidden" id="pm-master-photo-url">
+    </div>
+    <div id="pm-master-photo-preview" style="margin-top:8px"></div>
+  </div>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-secondary" onclick="closeModal('modal-pm-master-edit')">취소</button>
+  <button class="btn btn-primary" onclick="savePMMasterItem()">💾 항목 저장</button>
+</div>
+</div>
+</div>
+<!-- PM CHECKSHEET MODAL -->
+<div class="modal-overlay" id="modal-pm-checksheet">
+  <div class="modal" style="max-width:800px;width:95vw">
+    <div class="modal-header">
+      <h2 id="pmc-title">📋 PM 점검 체크시트</h2>
+      <button class="close-modal" onclick="closeModal('modal-pm-checksheet')">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;padding:12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:3px">설비</div>
+          <div id="pmc-equip-label" style="font-weight:700;font-size:13px">—</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:3px">점검월</div>
+          <select class="form-control" id="pmc-month" style="font-size:12px;padding:3px 6px"></select>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:3px">점검일자</div>
+          <input type="date" class="form-control" id="pmc-date" style="font-size:12px;padding:3px 6px">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:3px">담당자</div>
+          <input class="form-control" id="pmc-inspector" placeholder="담당자명" style="font-size:12px;padding:3px 6px">
+        </div>
+        <div style="grid-column:span 2">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:3px">특이사항</div>
+          <input class="form-control" id="pmc-memo" placeholder="전체 점검 특이사항" style="font-size:12px;padding:3px 6px;width:100%">
+        </div>
+      </div>
+      <div class="table-wrap" style="max-height:400px;overflow-y:auto">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:30px">No.</th>
+              <th>점검 부위</th>
+              <th>점검 항목</th>
+              <th>점검 기준</th>
+              <th style="width:50px">유형</th>
+              <th style="width:90px">결과</th>
+            </tr>
+          </thead>
+          <tbody id="pmc-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <span id="pmc-status" style="font-size:12px;color:var(--text3);flex:1"></span>
+      <button class="btn btn-secondary" onclick="closeModal('modal-pm-checksheet')">취소</button>
+      <button class="btn btn-primary" onclick="savePMChecksheet()">💾 점검 기록 저장</button>
+    </div>
+  </div>
+</div>
+<!-- PM ITEMS MODAL -->
+<div class="modal-overlay" id="modal-pm-items">
+  <div class="modal" style="max-width:860px;width:95vw">
+    <div class="modal-header">
+      <h2 id="pmi-title">📋 점검 항목 관리</h2>
+      <button class="close-modal" onclick="closeModal('modal-pm-items')">×</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border)">
+        <span id="pmi-count" style="font-size:12px;color:var(--text3);font-weight:700">총 0개</span>
+        <button class="btn btn-sm btn-secondary" onclick="openCopyFromEquip()">다른 설비에서 복사</button>
+      </div>
+      <div class="table-wrap" style="max-height:340px;overflow-y:auto">
+        <table style="width:100%">
+          <thead>
+            <tr>
+              <th style="width:36px;text-align:center;padding:8px 6px">No.</th>
+              <th style="padding:8px 10px">점검 부위</th>
+              <th style="padding:8px 10px">점검 항목</th>
+              <th style="padding:8px 10px">점검 기준</th>
+              <th style="width:52px;text-align:center;padding:8px 6px">유형</th>
+              <th style="width:64px;text-align:center;padding:8px 6px">기준사진</th>
+              <th style="width:104px;text-align:center;padding:8px 6px">관리</th>
+            </tr>
+          </thead>
+          <tbody id="pmi-tbody">
+            <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text3)">로딩 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- 인라인 추가 -->
+      <div style="padding:14px 16px;background:var(--surface2);border-top:2px solid var(--border)">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">새 항목 추가</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+          <div style="flex:1;min-width:80px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:3px">부위</div>
+            <input id="pmi-new-part" class="form-control" placeholder="구동부" style="font-size:12px">
+          </div>
+          <div style="flex:2;min-width:120px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:3px">항목명 *</div>
+            <input id="pmi-new-item" class="form-control" placeholder="항목명" style="font-size:12px">
+          </div>
+          <div style="flex:2;min-width:120px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:3px">점검 기준</div>
+            <input id="pmi-new-criteria" class="form-control" placeholder="기준" style="font-size:12px">
+          </div>
+          <div style="flex:1;min-width:70px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:3px">유형</div>
+            <select id="pmi-new-type" class="form-control" style="font-size:12px">
+              <option value="PASS_FAIL">O/X</option>
+              <option value="NUMBER">수치</option>
+            </select>
+          </div>
+          <div style="flex-shrink:0">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:3px">기준사진</div>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px;padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:#fff;white-space:nowrap">
+              📷 선택
+              <input type="file" id="pmi-new-photo-input" accept="image/*" style="display:none" onchange="uploadPMItemPhoto(this,'pmi-new-photo-url')">
+            </label>
+            <input type="hidden" id="pmi-new-photo-url">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="saveInlineItemModal()" style="align-self:flex-end;white-space:nowrap">➕ 추가</button>
+        </div>
+        <div id="pmi-add-status" style="font-size:11px;color:var(--text3);margin-top:6px"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-pm-items')">닫기</button>
+    </div>
+  </div>
+</div>
+<!-- PM HISTORY MODAL -->
+<div class="modal-overlay" id="modal-pm-history">
+  <div class="modal" style="max-width:920px;width:95vw">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button id="pmh-back-btn" onclick="showPMHistoryList()" style="display:none;background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px">← 목록</button>
+        <h2 id="pmh-title">📂 점검 이력</h2>
+      </div>
+      <button class="close-modal" onclick="closeModal('modal-pm-history')">×</button>
+    </div>
+    <div class="modal-body" style="padding:0;min-height:320px">
+      <!-- 목록 뷰 -->
+      <div id="pmh-list-view">
+        <div id="pmh-list-body" style="padding:0">
+          <div style="text-align:center;padding:40px;color:var(--text3)">로딩 중...</div>
+        </div>
+      </div>
+      <!-- 상세 뷰 -->
+      <div id="pmh-detail-view" style="display:none;padding:16px">
+        <div id="pmh-detail-header" style="padding:10px 14px;background:var(--surface2);border-radius:8px;margin-bottom:14px;font-size:13px;display:flex;gap:24px"></div>
+        <div id="pmh-detail-body"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-pm-history')">닫기</button>
+    </div>
+  </div>
+</div>
+<!-- PM RESULT EDIT MODAL -->
+<div class="modal-overlay" id="modal-pm-result-edit">
+  <div class="modal" style="max-width:520px;width:95vw">
+    <div class="modal-header">
+      <h2 id="pmre-title">📝 점검 기록 수정</h2>
+      <button class="close-modal" onclick="closeModal('modal-pm-result-edit')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pmre-id">
+      <input type="hidden" id="pmre-input-type">
+      <div style="padding:10px 12px;background:var(--surface2);border-radius:8px;margin-bottom:14px;font-size:12px">
+        <span id="pmre-item-label" style="font-weight:700;color:var(--text2)"></span>
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label">담당자</label>
+          <input class="form-control" id="pmre-inspector" placeholder="담당자명">
+        </div>
+        <div class="form-group">
+          <label class="form-label">점검일</label>
+          <input type="date" class="form-control" id="pmre-date">
+        </div>
+      </div>
+      <div class="form-group" id="pmre-pf-group">
+        <label class="form-label">결과 (O/X)</label>
+        <select class="form-control" id="pmre-pass-fail">
+          <option value="">-</option>
+          <option value="O">O (합격)</option>
+          <option value="X">X (불합격)</option>
+        </select>
+      </div>
+      <div class="form-group" id="pmre-num-group" style="display:none">
+        <label class="form-label">측정값</label>
+        <input type="number" class="form-control" id="pmre-value-num" placeholder="수치 입력">
+      </div>
+      <div class="form-group">
+        <label class="form-label">메모</label>
+        <textarea class="form-control" id="pmre-memo" style="min-height:70px" placeholder="점검 특이사항"></textarea>
+      </div>
+      <div id="pmre-status" style="font-size:12px;color:var(--text3);margin-top:8px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="deletePMResultRow()" style="margin-right:auto">🗑 삭제</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-pm-result-edit')">취소</button>
+      <button class="btn btn-primary" onclick="savePMResultEdit()">💾 저장</button>
+    </div>
+  </div>
+</div>
+<!-- EQUIP DETAIL MODAL -->
+<div class="modal-overlay" id="modal-equip">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-equip-title">설비 상세</h2>
+      <div style="display:flex;align-items:center;gap:8px">
+        <a id="btn-open-report" href="report.html" target="_blank" class="btn btn-sm btn-secondary" style="font-size:12px;text-decoration:none">📄 이력카드</a>
+        <button class="close-modal" onclick="closeModal('modal-equip')">×</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div id="modal-equip-info">
+      </div>
+      <div id="modal-equip-parts-container" style="margin-top:20px;">
+        <div class="card-title" style="margin-bottom:10px">연결 스페어파트</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>파트코드</th>
+                <th>파트명</th>
+                <th>규격</th>
+                <th>단위</th>
+                <th>현재고</th>
+                <th>안전재고</th>
+              </tr>
+            </thead>
+            <tbody id="modal-equip-parts">
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div id="modal-equip-subitems-container" style="margin-top:20px;">
+        <div class="card-title" style="margin-bottom:10px">🔩 부속 설비 구성</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align:center">사진</th>
+                <th>부속코드</th>
+                <th>명칭</th>
+                <th style="text-align:center">수량</th>
+                <th>비고</th>
+              </tr>
+            </thead>
+            <tbody id="modal-equip-subitems">
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div id="modal-equip-history-container" style="margin-top:20px;">
+        <div class="card-title" style="margin-bottom:10px">고장 이력</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>유형</th>
+                <th>접수일시</th>
+                <th>증상</th>
+                <th>사진</th>
+                <th>처리일시</th>
+                <th>조치내용</th>
+                <th>상태</th>
+                <th>신고자</th>
+              </tr>
+            </thead>
+            <tbody id="modal-equip-history">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn btn-danger" id="btn-equip-delete" style="display:none" onclick="confirmDeleteEquip()">🗑️ 설비 폐기</button>
+      <div style="display:flex; gap:10px">
+        <button class="btn btn-primary" id="btn-equip-edit-mode" style="display:none" onclick="enableEditMode()">✏️ 정보 수정</button>
+        <button class="btn btn-secondary" onclick="closeModal('modal-equip')">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- EQUIP FORM MODAL -->
+<div class="modal-overlay" id="modal-equip-form">
+  <div class="modal" style="max-width:900px">
+    <div class="modal-header">
+      <h2 id="equip-form-title">신규 설비 등록</h2>
+      <button class="close-modal" onclick="closeModal('modal-equip-form')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:22px; align-items:center;">
+        <label class="form-label" style="align-self:flex-start">📸 설비 사진</label>
+        <div class="photo-preview-large" onclick="document.getElementById('form-eq-photo-input').click()">
+          <span id="equip-photo-placeholder" style="color:var(--text3); text-align:center; line-height:1.7">
+            <span style="font-size:34px">📷</span>
+            <br /> 클릭하여 사진 선택<br /> (Google Drive 연동) </span>
+            <img id="equip-photo-previewimg" src="" alt="설비 사진" style="display:none" />
+          </div>
+          <div style="display:flex; gap:10px; margin-top:10px;">
+            <input type="file" id="form-eq-photo-input" style="display:none" accept="image/*" onchange="uploadEquipPhoto(this)" />
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('form-eq-photo-input').click()">🖼️ 사진 변경</button>
+            <button class="btn btn-secondary btn-sm" id="btn-remove-equip-photo" style="color:var(--red); display:none" onclick="removeEquipPhoto()">🗑️ 삭제</button>
+            <input type="hidden" id="form-eq-photo-url" />
+          </div>
+          <small id="equip-photo-status" style="font-size:11px; color:var(--text3); margin-top:6px">
+          </small>
+        </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <label class="form-label">설비코드 <span style="color:var(--red)">*</span>
+        </label>
+        <input class="form-control" id="form-eq-code" placeholder="예: AIT-AMB-001" />
+        <input type="hidden" id="form-eq-old-code" />
+        <small id="code-help" style="font-size:15px;color:var(--text3)">수정 시 설비코드를 변경하면 관련 이력도 이전됩니다.</small>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label">설비명 <span style="color:var(--red)">*</span>
+      </label>
+      <input class="form-control" id="form-eq-name" placeholder="설비 명칭 입력" />
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label">제작사</label>
+        <input class="form-control" id="form-eq-maker" placeholder="제작사명" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">설치소 (라인)</label>
+        <input class="form-control" id="form-eq-loc" placeholder="공정 / 위치" />
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label">담당자</label>
+        <input class="form-control" id="form-eq-manager" placeholder="담당자 성함" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">담당부서</label>
+        <input class="form-control" id="form-eq-dept" placeholder="부서명" />
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label">자산번호</label>
+        <input class="form-control" id="form-eq-asset" placeholder="자산번호" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">제작/설치일</label>
+        <input class="form-control" id="form-eq-date" type="date" />
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label">운용 상태</label>
+        <select class="form-control" id="form-eq-status">
+          <option value="정상">정상</option>
+          <option value="고장" style="color:#d32f2f;font-weight:700">🔴 고장</option>
+          <option value="유휴">유휴</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">사양 / 규격</label>
+      <textarea class="form-control" id="form-eq-spec" placeholder="기타 사양 정보">
+      </textarea>
+    </div>
+    <div style="margin-top:24px; padding:18px; background:var(--surface2); border-radius:16px; border:1px solid var(--border);">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px;">
+        <span style="font-weight:800; font-size:20px">📋 설비 중요도 평가 (11개 지표)</span>
+        <span id="form-total-score-badge" class="badge grade-D" style="margin-left:0; font-size:20px; padding:12px 20px;">0점 (D)</span>
+      </div>
+      <div class="eval-grid">
+        <div class="form-group">
+          <label class="form-label">1. 평균적 조업도</label>
+          <select class="form-control" id="eval-1-1" onchange="calcTotalScore()">
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">2. 예비기, 대체기 유무, 교체 난이도</label>
+          <select class="form-control" id="eval-1-2" onchange="calcTotalScore()">
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">3. 고장이 타 공정에 미치는 영향(치명적)</label>
+          <select class="form-control" id="eval-2-3" onchange="calcTotalScore()">
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">4. 고장이 고객에 미치는 영향</label>
+          <select class="form-control" id="eval-2-4" onchange="calcTotalScore()">
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">5. 공정내 품질불량 발생정도</label>
+          <select class="form-control" id="eval-3-5" onchange="calcTotalScore()">
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">6. 납입품질에 미치는 영향</label>
+          <select class="form-control" id="eval-3-6" onchange="calcTotalScore()">
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">7. 고장에 의한 품질저하 손실액</label>
+          <select class="form-control" id="eval-4-7" onchange="calcTotalScore()">
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">8. 고장에 의한 에너지/재료비/노무비 손실액</label>
+          <select class="form-control" id="eval-4-8" onchange="calcTotalScore()">
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">9. 수선비용의 크기</label>
+          <select class="form-control" id="eval-4-9" onchange="calcTotalScore()">
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">10. 고장으로 인체에 미치는 위험성</label>
+          <select class="form-control" id="eval-5-10" onchange="calcTotalScore()">
+          </select>
+        </div>
+        <div class="form-group" style="grid-column: 1 / -1;">
+          <label class="form-label">11. 고장이 공해에 미치는 영향</label>
+          <select class="form-control" id="eval-5-11" onchange="calcTotalScore()">
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:10px; font-size:11px; color:var(--text3); line-height:1.7;"> ※ A : 50점 이상 (점검 주기 : 1회 / 1개월)<br /> ※ B : 40점 이상 (점검 주기 : 1회 / 3개월)<br /> ※ C : 20점 이상 (점검 주기 : 1회 / 6개월)<br /> ※ D : 19점 이하 (점검 주기 : 1회 / 12개월 또는 점검 주기 최소 적용) </div>
+      <!-- 연결 스페어파트 -->
+      <div style="margin-top:24px;border-top:1px solid var(--border,#e5e7eb);padding-top:20px">
+        <div style="font-weight:800;font-size:14px;margin-bottom:12px">🔧 연결 스페어파트</div>
+        <div id="equip-form-parts-list" style="margin-bottom:12px;font-size:13px"></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select class="form-control" id="equip-form-part-select" style="min-width:220px">
+            <option value="">-- 파트 선택 --</option>
+          </select>
+          <input type="number" class="form-control" id="equip-form-part-stock" placeholder="재고수량" style="width:90px" min="0" />
+          <input type="number" class="form-control" id="equip-form-part-safe" placeholder="안전재고" style="width:90px" min="0" />
+          <button class="btn btn-sm btn-secondary" onclick="addEquipFormPart()">+ 추가</button>
+        </div>
+      </div>
+      <!-- 부속 설비 구성 -->
+      <div style="margin-top:24px;border-top:1px solid var(--border,#e5e7eb);padding-top:20px">
+        <div style="font-weight:800;font-size:14px;margin-bottom:12px">🔩 부속 설비 구성</div>
+        <div id="equip-form-subitems-list" style="margin-bottom:12px;font-size:13px"></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="text" class="form-control" id="form-sub-code" placeholder="부속코드 (예: JIG-A001)" style="width:150px" />
+          <input type="text" class="form-control" id="form-sub-name" placeholder="명칭 (예: A모델 검사지그)" style="min-width:160px;flex:1" />
+          <input type="number" class="form-control" id="form-sub-qty" placeholder="수량" style="width:70px" min="1" value="1" />
+          <input type="text" class="form-control" id="form-sub-memo" placeholder="비고" style="width:110px" />
+          <input type="file" id="form-sub-photo-input" style="display:none" accept="image/*" onchange="uploadSubItemPhoto(this)" />
+          <button class="btn btn-sm btn-secondary" onclick="document.getElementById('form-sub-photo-input').click()" id="form-sub-photo-btn" title="사진 첨부 (권장)">📷 <span id="form-sub-photo-label" style="font-size:11px;color:var(--text3)">없음</span></button>
+          <input type="hidden" id="form-sub-photo-url" />
+          <button class="btn btn-sm btn-secondary" onclick="addEquipSubItem()">+ 추가</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" onclick="closeModal('modal-equip-form')">취소</button>
+    <button class="btn btn-primary" id="btn-save-equip" onclick="saveEquipment()">💾 저장하기</button>
+  </div>
+</div>
+</div>
+<!-- REPORT MODAL -->
+<!-- REPORT NEW MODAL -->
+<div class="modal-overlay" id="modal-report-new">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>➕ 신규 고장 접수</h2>
+      <button class="close-modal" onclick="closeModal('modal-report-new')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">설비 <span style="color:var(--red);font-size:10px">필수</span></label>
+        <select class="form-control" id="new-rep-equip"><option value="">-- 설비 선택 --</option></select>
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label">고장 유형</label>
+          <select class="form-control" id="new-rep-type">
+            <option>전기</option>
+            <option>기계</option>
+            <option>유압</option>
+            <option>공압</option>
+            <option>소프트웨어</option>
+            <option>기타</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">우선순위</label>
+          <select class="form-control" id="new-rep-priority">
+            <option>긴급</option>
+            <option>높음</option>
+            <option>보통</option>
+            <option>낮음</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">증상 <span style="color:var(--red);font-size:10px">필수</span></label>
+        <textarea class="form-control" id="new-rep-symptom" placeholder="고장 증상을 입력하세요" rows="3"></textarea>
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">신고자</label>
+        <input class="form-control" id="new-rep-reporter" placeholder="이름 입력" />
+      </div>
+      <input type="hidden" id="new-rep-photo-url" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-report-new')">취소</button>
+      <button class="btn btn-primary" onclick="submitNewReport()">📋 접수 등록</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-report">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-report-title">고장 상세</h2>
+      <button class="close-modal" onclick="closeModal('modal-report')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-report-info">
+      </div>
+      <div style="margin-top:14px;padding:12px 14px;background:#f0fdf4;border-radius:10px;font-size:12px;color:#16a34a;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:16px;">📱</span>
+        <span>조치 입력은 현장 앱(report.html)에서 진행해주세요.</span>
+      </div>
+      <!-- hidden fields kept so reports.js openReportModal() doesn't error -->
+      <input type="hidden" id="act-report-id" />
+      <input type="hidden" id="act-equip-code" />
+      <input type="hidden" id="act-status" />
+      <input type="hidden" id="act-tech" />
+      <input type="hidden" id="act-cause" />
+      <input type="hidden" id="act-detail" />
+      <input type="hidden" id="act-downtime" />
+      <input type="hidden" id="act-result" />
+      <input type="hidden" id="act-delay-type" />
+      <input type="hidden" id="act-delay-reason" />
+      <input type="hidden" id="form-rep-photo-url" />
+    </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" onclick="closeModal('modal-report')">닫기</button>
+  </div>
+</div>
+</div>
+<!-- PM EDIT MODAL -->
+<div class="modal-overlay" id="modal-pm-edit">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header">
+      <h2 id="pm-edit-title">정기점검 계획 수정</h2>
+      <button class="close-modal" onclick="closeModal('modal-pm-edit')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="pm-edit-info" style="margin-bottom:18px; padding:16px; background:var(--primary-light); border-radius:16px; border:1px solid #dce8ff">
+      </div>
+      <div style="margin-bottom:10px; font-size:12px; color:var(--text3); font-weight:800">📅 월별 점검 예정일 설정</div>
+      <div id="pm-month-grid" style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-pm-edit')">취소</button>
+      <button class="btn btn-primary" onclick="savePMEditSingle()">💾 계획 임시 저장</button>
+    </div>
+  </div>
+</div>
+</div>
 
-    <script src="script.js?v=20251231115600"></script>
-</body>
+<!-- PARTS MASTER MODAL -->
+<div class="modal-overlay" id="modal-parts-master">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <h2 id="pm-form-title">신규 파트 등록</h2>
+      <button class="close-modal" onclick="closeModal('modal-parts-master')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pm-form-master-id" />
+      <!-- 파트 사진 -->
+      <div class="form-group" style="margin-bottom:16px">
+        <label class="form-label">📸 파트 사진 <span style="color:var(--red)">*</span></label>
+        <div style="width:100%;height:160px;border:2px dashed var(--border,#e5e7eb);border-radius:12px;background:var(--surface2,#f8f9fb);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative" onclick="document.getElementById('pm-photo-input').click()">
+          <span id="pm-photo-placeholder" style="color:var(--text3);text-align:center;line-height:1.8">
+            <span style="font-size:32px">📷</span><br>클릭하여 사진 선택<br><small style="font-size:11px">(Google Drive 자동 저장)</small>
+          </span>
+          <img id="pm-photo-previewimg" src="" alt="파트 사진" style="display:none;width:100%;height:100%;object-fit:contain;position:absolute;inset:0" />
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+          <input type="file" id="pm-photo-input" style="display:none" accept="image/*" onchange="uploadPartsPhoto(this)" />
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('pm-photo-input').click()">🖼️ 사진 변경</button>
+          <button class="btn btn-secondary btn-sm" id="btn-remove-parts-photo" style="color:var(--red,#ef4444);display:none" onclick="removePartsPhoto()">🗑️ 삭제</button>
+          <small id="pm-photo-status" style="font-size:11px;color:var(--text3)"></small>
+        </div>
+        <input type="hidden" id="pm-form-photo-url" />
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label">파트코드</label>
+          <input class="form-control" id="pm-form-code" placeholder="예: SPR-001" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">파트명 <span style="color:var(--red)">*</span></label>
+          <input class="form-control" id="pm-form-name" placeholder="예: 오링 A형" />
+        </div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label">규격</label>
+          <input class="form-control" id="pm-form-spec" placeholder="예: Ø50×3mm" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">단위</label>
+          <select class="form-control" id="pm-form-unit">
+            <option value="EA">EA</option>
+            <option value="SET">SET</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+            <option value="KG">KG</option>
+            <option value="BOX">BOX</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label">표준조달일수</label>
+          <input class="form-control" type="number" id="pm-form-cycle" placeholder="0" min="0" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">안전재고</label>
+          <input class="form-control" type="number" id="pm-form-safe-stock" placeholder="0" min="0" />
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:4px">
+        <label class="form-label">중요도</label>
+        <select class="form-control" id="pm-form-criticality">
+          <option value="A">A — 2주 이상 조달가능</option>
+          <option value="B">B — 2주 이내 조달가능</option>
+          <option value="C" selected>C — 즉시 조달가능</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-parts-master')">취소</button>
+      <button class="btn btn-primary" onclick="savePartsMaster()">💾 저장</button>
+    </div>
+  </div>
+</div>
 
-</html>
+<!-- PARTS IN MODAL -->
+<div class="modal-overlay" id="modal-parts-in">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h2 id="trans-in-title">📦 입고 등록</h2>
+      <button class="close-modal" onclick="closeModal('modal-parts-in')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="trans-in-master-id" />
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label">입고 수량 <span style="color:var(--red)">*</span></label>
+          <input class="form-control" type="number" id="trans-in-qty" placeholder="0" min="1" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">입고일</label>
+          <input class="form-control" type="date" id="trans-in-date" />
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">작업자</label>
+        <input class="form-control" id="trans-in-worker" placeholder="이름 입력" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">메모</label>
+        <input class="form-control" id="trans-in-memo" placeholder="발주번호, 공급처 등" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-parts-in')">취소</button>
+      <button class="btn btn-primary" onclick="savePartsIn()">📦 입고 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- PARTS OUT MODAL -->
+<div class="modal-overlay" id="modal-parts-out">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h2 id="trans-out-title">📤 출고 등록</h2>
+      <button class="close-modal" onclick="closeModal('modal-parts-out')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="trans-out-master-id" />
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label">출고 수량 <span style="color:var(--red)">*</span></label>
+          <input class="form-control" type="number" id="trans-out-qty" placeholder="0" min="1" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">출고일</label>
+          <input class="form-control" type="date" id="trans-out-date" />
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">사용 설비</label>
+        <select class="form-control" id="trans-out-equip">
+          <option value="">-- 설비 선택 (선택사항) --</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">작업자</label>
+        <input class="form-control" id="trans-out-worker" placeholder="이름 입력" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">메모</label>
+        <input class="form-control" id="trans-out-memo" placeholder="사용 목적 등" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-parts-out')">취소</button>
+      <button class="btn btn-primary" onclick="savePartsOut()">📤 출고 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- PARTS EQUIP LINK MODAL -->
+<div class="modal-overlay" id="modal-parts-equip-link">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <h2 id="pel-title">🔗 설비 연결</h2>
+      <button class="close-modal" onclick="closeModal('modal-parts-equip-link')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pel-part-id" />
+      <!-- 현재 연결된 설비 -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--text,#111)">현재 연결된 설비 <span id="pel-linked-count" style="color:var(--text3,#9ca3af);font-weight:400">(0)</span></div>
+        <div id="pel-linked-list" style="display:flex;flex-wrap:wrap;gap:6px;min-height:32px;padding:6px 8px;border:1px solid var(--border,#e5e7eb);border-radius:8px;background:var(--surface2,#f9fafb)">
+          <span id="pel-linked-empty" style="font-size:12px;color:var(--text3,#9ca3af)">연결된 설비 없음</span>
+        </div>
+      </div>
+      <!-- 자동 추천 -->
+      <div id="pel-suggest-section" style="margin-bottom:14px;padding:10px 12px;background:rgba(37,99,235,0.06);border-radius:10px;display:none">
+        <div style="font-size:12px;font-weight:700;color:var(--primary,#2563eb);margin-bottom:6px">⭐ 자동 추천 — 연결된 설비와 같은 라인/설치소</div>
+        <div id="pel-suggest-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
+      <!-- 라인 필터 + 검색 -->
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <select id="pel-location" onchange="filterPELList()" style="flex:0 0 150px;padding:6px 8px;border:1px solid var(--border,#e5e7eb);border-radius:8px;background:var(--surface,#fff);font-size:13px">
+          <option value="">전체 라인</option>
+        </select>
+        <input class="form-control" id="pel-search" placeholder="설비코드, 설비명 검색..." style="flex:1" oninput="filterPELList()" />
+      </div>
+      <div style="font-size:11px;color:var(--text3,#9ca3af);margin-bottom:6px">체크하면 연결 추가 / 연결된 설비의 × 버튼으로 제거</div>
+      <div id="pel-equip-list" style="max-height:300px;overflow-y:auto;border:1px solid var(--border,#e5e7eb);border-radius:8px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-parts-equip-link')">취소</button>
+      <button class="btn btn-primary" onclick="savePartsEquipLink()">💾 연결 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- PARTS HISTORY SLIDE-OVER -->
+<div id="parts-history-bg" onclick="closePartsHistory()" style="display:none;position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,0.35)"></div>
+<div id="parts-history-slideover" style="position:fixed;top:0;right:0;width:480px;max-width:95vw;height:100%;background:var(--surface,#fff);z-index:1101;overflow-y:auto;box-shadow:-6px 0 32px rgba(0,0,0,0.18);transform:translateX(100%);transition:transform 0.3s ease">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface,#fff);z-index:1">
+    <div>
+      <div id="parts-hist-title" style="font-size:15px;font-weight:800">입출고 이력</div>
+      <div id="parts-hist-sub" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
+    </div>
+    <button onclick="closePartsHistory()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3)">×</button>
+  </div>
+  <!-- 재고 요약 -->
+  <div id="parts-hist-summary" style="display:flex;gap:0;border-bottom:1px solid var(--border)">
+    <div style="flex:1;padding:12px 16px;text-align:center;border-right:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">현재 재고</div>
+      <div id="parts-hist-stock" style="font-size:22px;font-weight:800">—</div>
+    </div>
+    <div style="flex:1;padding:12px 16px;text-align:center;border-right:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">안전 재고</div>
+      <div id="parts-hist-safe" style="font-size:22px;font-weight:800">—</div>
+    </div>
+    <div style="flex:1;padding:12px 16px;text-align:center">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">연결 설비</div>
+      <div id="parts-hist-equip" style="font-size:13px;font-weight:700;color:var(--primary)">—</div>
+    </div>
+  </div>
+  <!-- 입출고 이력 테이블 -->
+  <div style="padding:12px 0">
+    <div style="padding:4px 16px 8px;font-size:12px;font-weight:700;color:var(--text2)">📦 입출고 이력</div>
+    <div id="parts-hist-body">
+      <div style="text-align:center;padding:40px;color:var(--text3)">로딩 중...</div>
+    </div>
+  </div>
+</div>
+<!-- HISTORY SLIDE-OVER -->
+<div id="history-slideover-bg" onclick="closeHistorySlideOver()" style="display:none;position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,0.35)"></div>
+<div id="history-slideover" style="display:none;position:fixed;top:0;right:0;width:50%;height:100%;background:var(--surface,#fff);z-index:1101;overflow-y:auto;box-shadow:-6px 0 32px rgba(0,0,0,0.18);transform:translateX(100%);transition:transform 0.3s ease">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border,#e5e7eb);position:sticky;top:0;background:var(--surface,#fff);z-index:1">
+    <h3 style="margin:0;font-size:16px;font-weight:800">📋 고장 이력 상세</h3>
+    <button onclick="closeHistorySlideOver()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text3,#9ca3af)">×</button>
+  </div>
+  <div style="padding:20px">
+    <div id="so-info" style="margin-bottom:20px"></div>
+    <input type="hidden" id="so-report-id" />
+    <input type="hidden" id="so-equip-code" />
+    <div style="margin-bottom:16px;display:flex;gap:10px;align-items:center">
+      <button id="so-edit-toggle-btn" class="btn btn-secondary" onclick="document.getElementById('so-edit-section').style.display='block';this.style.display='none'">✏️ 조치 입력</button>
+      <button class="btn btn-danger" onclick="deleteHistoryReport()">🗑️ 삭제</button>
+    </div>
+    <div id="so-edit-section" style="display:none">
+      <hr style="border:none;border-top:1px solid var(--border,#e5e7eb);margin-bottom:20px" />
+      <div style="font-weight:800;font-size:14px;margin-bottom:14px">✏️ 조치 입력 / 상태 변경</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text2,#6b7280);display:block;margin-bottom:4px">상태 변경</label>
+          <select class="form-control" id="so-status">
+            <option value="">변경 안함</option>
+            <option>접수</option>
+            <option>확인중</option>
+            <option>수리중</option>
+            <option>완료</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text2,#6b7280);display:block;margin-bottom:4px">조치자</label>
+          <input class="form-control" id="so-tech" placeholder="이름 입력" />
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;font-weight:600;color:var(--text2,#6b7280);display:block;margin-bottom:4px">조치 내용</label>
+        <textarea class="form-control" id="so-detail" rows="4" placeholder="수행한 조치 내용을 입력하세요"></textarea>
+      </div>
+      <div style="margin-bottom:20px">
+        <label style="font-size:12px;font-weight:600;color:var(--text2,#6b7280);display:block;margin-bottom:4px">다운타임 (분)</label>
+        <input class="form-control" id="so-downtime" type="number" placeholder="0" style="max-width:160px" />
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-secondary" onclick="closeHistorySlideOver()">닫기</button>
+        <button class="btn btn-primary" onclick="submitHistoryAction()">💾 저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PM PLAN DATE EDIT SLIDEOVER (B안) -->
+<div id="pm-plan-edit-slideover" style="position:fixed;top:0;right:0;width:300px;height:100vh;background:var(--surface);box-shadow:-4px 0 20px rgba(0,0,0,0.15);z-index:490;display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.25s ease">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0">
+    <div>
+      <div id="pm-plan-slide-title" style="font-size:13px;font-weight:700">PM 계획 날짜 편집</div>
+      <div id="pm-plan-slide-year" style="font-size:11px;color:var(--text3)"></div>
+    </div>
+    <button onclick="closePMPlanSlideover()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text3);line-height:1">×</button>
+  </div>
+  <div id="pm-plan-slide-body" style="flex:1;overflow-y:auto;padding:8px 14px"></div>
+  <div style="padding:12px;border-top:1px solid var(--border);flex-shrink:0">
+    <button class="btn btn-primary" style="width:100%" onclick="savePMPlanFromSlideover()">💾 저장</button>
+  </div>
+</div>
+
+<!-- PM RESULT ENTRY SLIDEOVER (B안) -->
+<div id="pm-result-entry-slideover" style="position:fixed;top:0;right:0;width:320px;height:100vh;background:var(--surface);box-shadow:-4px 0 20px rgba(0,0,0,0.15);z-index:495;display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.25s ease">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0">
+    <div>
+      <div id="pre-slide-title" style="font-size:13px;font-weight:700;max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">실적 입력</div>
+      <div id="pre-slide-month" style="font-size:11px;color:#1976d2;font-weight:600"></div>
+    </div>
+    <button onclick="closePMResultEntry()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text3);line-height:1">×</button>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:16px">
+    <input type="hidden" id="pre-slide-master-id" />
+    <input type="hidden" id="pre-slide-input-type" />
+    <input type="hidden" id="pre-slide-month-key" />
+    <div id="pre-slide-input-area"></div>
+    <div style="margin-top:16px">
+      <label style="font-size:12px;font-weight:700;color:var(--text2)">점검 특이사항 <span style="color:#d32f2f">*</span></label>
+      <textarea id="pre-slide-memo" rows="3" class="form-control" placeholder="특이사항 입력 (필수)" style="margin-top:6px;font-size:12px;padding:6px 8px;resize:none"></textarea>
+    </div>
+  </div>
+  <div style="padding:12px;border-top:1px solid var(--border);flex-shrink:0">
+    <button class="btn btn-primary" style="width:100%;font-size:14px;padding:10px" onclick="savePMResultEntry()">💾 실적 저장</button>
+  </div>
+</div>
+
+<!-- PM RESULT HISTORY SLIDEOVER -->
+<div id="pm-result-slideover" style="position:fixed;top:0;right:0;width:420px;height:100vh;background:var(--surface);box-shadow:-4px 0 20px rgba(0,0,0,0.15);z-index:500;display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.25s ease">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+    <h3 id="pm-result-slide-title" style="font-size:14px;font-weight:700;margin:0">실적 이력</h3>
+    <button onclick="closePMResultHistory()" style="background:none;border:none;cursor:pointer;font-size:22px;color:var(--text3);line-height:1">×</button>
+  </div>
+  <div id="pm-result-slide-body" style="flex:1;overflow-y:auto">
+    <div style="text-align:center;color:var(--text3);padding:40px;font-size:13px">항목을 선택하세요.</div>
+  </div>
+</div>
+
+<!-- 사진 라이트박스 모달 -->
+<div id="modal-photo-view" class="modal-overlay" style="z-index:2000">
+  <div style="position:relative;max-width:90vw;max-height:90vh;display:flex;align-items:center;justify-content:center" onclick="event.stopPropagation()">
+    <button onclick="document.getElementById('modal-photo-view').classList.remove('open')"
+      style="position:absolute;top:-14px;right:-14px;z-index:10;width:32px;height:32px;border-radius:999px;border:none;background:#fff;color:#374151;font-size:18px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
+    <img id="modal-photo-view-img" src="" alt="사진 보기"
+      style="max-width:85vw;max-height:85vh;border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,0.35);object-fit:contain;background:#fff" />
+  </div>
+</div>
+
+<script type="module" src="script.js?v=20260428"></script>
