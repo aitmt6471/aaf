@@ -1229,23 +1229,26 @@ window.print_daily = async function() {
     }
   }
 
-  // DB에서 이번 달 전체 결과 로드
+  // DB에서 이번 달 전체 결과 로드 (수동 클릭 없이도 모든 설비×모든 날짜를 인쇄에 표시)
   if (!AIT_API.MOCK && window.currentCarId) {
-    // 1) 설비당 1회 일괄 조회 — 성공 시 대부분의 날짜를 _dResults/_dDBLoadedDays에 채움 (요청 폭주 방지)
+    // 1) 일괄 조회(배포 시): 설비당 1회로 대부분의 날짜를 _dResults/_dDBLoadedDays에 채움
     if (window._dailyLoadMonthResults) {
       await Promise.all(allEquip.map((_, idx) => window._dailyLoadMonthResults(idx)));
     }
-    // 2) 보강: 월 상태로 '데이터 있는 날짜'를 파악해, 일괄에서 아직 안 채워진 날만 날짜별 로드.
-    //    (일괄이 비어 반환/미배포/실패해도 여기서 반드시 채워짐. 이미 로드된 날은 가드로 스킵)
-    if (window._dailyLoadMonthStatus && window._dailyLoadDay) {
-      const _hasDB = window._dHasDBData, _loaded = window._dDBLoadedDays;
-      await Promise.all(allEquip.map((_, idx) => window._dailyLoadMonthStatus(idx)));
-      const toLoad = [];
+    // 2) 보강: 모든 설비 × 그 달 모든 날짜(1~말일)를 직접 조회. 월 상태(month-status) 의존 제거 —
+    //    아직 안 채워진 날만 큐에 넣고 동시 실행 6개로 스로틀(요청 폭주로 인한 누락 방지).
+    //    데이터 없는 날은 _dLoadResultsFromDB가 그냥 무시. 이미 로드된 날은 _dDBLoadedDays 가드로 스킵.
+    if (window._dailyLoadDay) {
+      const _loaded = window._dDBLoadedDays;
+      const tasks = [];
       allEquip.forEach((_, idx) => days.forEach(day => {
         const ck = `${idx}_${day}_${dMth.year}_${dMth.month}`;
-        if (_hasDB.has(ck) && !_loaded.has(ck)) toLoad.push([idx, day]);
+        if (!_loaded.has(ck)) tasks.push(() => window._dailyLoadDay(idx, day));
       }));
-      if (toLoad.length) await Promise.all(toLoad.map(([idx, day]) => window._dailyLoadDay(idx, day)));
+      const LIMIT = 6;
+      let ti = 0;
+      const worker = async () => { while (ti < tasks.length) { const c = ti++; try { await tasks[c](); } catch(_){} } };
+      await Promise.all(Array.from({length: Math.min(LIMIT, tasks.length)}, worker));
     }
   }
 
