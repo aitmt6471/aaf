@@ -69,6 +69,16 @@ function doPost(e) {
         const startDateTime = `${data.startDate} ${data.startTime}`;
         const endDateTime = `${data.endDate} ${data.endTime}`;
 
+        if (isDuplicateAttendanceRecord(sheet, data)) {
+            return ContentService
+                .createTextOutput(JSON.stringify({
+                    status: 'error',
+                    code: 'DUPLICATE_ATTENDANCE',
+                    message: '동일한 소속, 성명, 직위, 일자, 시간, 근태구분의 근태계는 중복 등록할 수 없습니다.'
+                }))
+                .setMimeType(ContentService.MimeType.JSON);
+        }
+
         // A-H 열까지 데이터 저장 (I-L은 수동 관리: 검토상태, 검토일자, 승인상태, 승인일자)
         const rowData = [
             timestamp,              // A: 접수일자
@@ -99,6 +109,59 @@ function doPost(e) {
             }))
             .setMimeType(ContentService.MimeType.JSON);
     }
+}
+
+function normalizeTextValue(value) {
+    return String(value || '').trim();
+}
+
+function splitSheetDateTime(dateTimeValue) {
+    const raw = normalizeTextValue(dateTimeValue);
+
+    if (!raw) {
+        return { date: '', time: '' };
+    }
+
+    const normalized = raw.replace('T', ' ');
+    const parts = normalized.split(' ');
+    const date = parts[0] || '';
+    const time = (parts[1] || '').slice(0, 5);
+
+    return { date: date, time: time };
+}
+
+function isDuplicateAttendanceRecord(sheet, requestData) {
+    const lastRow = sheet.getLastRow();
+
+    if (lastRow <= 1) {
+        return false;
+    }
+
+    const rows = sheet.getRange(2, 2, lastRow - 1, 6).getValues();
+    const targetDepartment = normalizeTextValue(requestData.department);
+    const targetPosition = normalizeTextValue(requestData.position);
+    const targetName = normalizeTextValue(requestData.name);
+    const targetStartDate = normalizeTextValue(requestData.startDate);
+    const targetStartTime = normalizeTextValue(requestData.startTime).slice(0, 5);
+    const targetType = normalizeTextValue(requestData.type);
+
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var start = splitSheetDateTime(row[3]);
+
+        if (
+            normalizeTextValue(row[0]) === targetDepartment &&
+            normalizeTextValue(row[1]) === targetPosition &&
+            normalizeTextValue(row[2]) === targetName &&
+            start.date === targetStartDate &&
+            start.time === targetStartTime &&
+            normalizeTextValue(row[5]) === targetType
+        ) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function lookupAttendanceRecords(department, name) {
