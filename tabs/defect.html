@@ -1,0 +1,41 @@
+<!-- 부적합품현황 (하위 탭: 현황 / 누적현황) -->
+<div class="tab-toolbar">
+  <div style="display:flex;align-items:center;gap:8px">
+    <span style="font-size:15px;font-weight:900;color:#1e3264;letter-spacing:2px">부적합품현황</span>
+    <span id="defect-line-badge" style="font-size:12px;color:#6b7280"></span>
+  </div>
+  <div id="defect-subtabs" style="display:flex;gap:4px">
+    <button data-view="status" class="proc-btn active" onclick="window._defectSetView('status',this)">현황</button>
+    <button data-view="dashboard" class="proc-btn" onclick="window._defectSetView('dashboard',this)">누적현황</button>
+  </div>
+  <div style="flex:1"></div>
+  <div id="defect-cat-tabs" style="display:flex;gap:4px">
+    <button data-cat="all" class="proc-btn active" onclick="window._defectSetCat('all',this)">전체</button>
+    <button data-cat="외관" class="proc-btn" onclick="window._defectSetCat('외관',this)">외관</button>
+    <button data-cat="기능" class="proc-btn" onclick="window._defectSetCat('기능',this)">기능</button>
+  </div>
+  <input id="defect-date" type="date" onchange="window._defectLoad()"
+    style="border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit">
+  <button class="btn btn-ghost btn-sm" onclick="window._defectRefresh()">🔄 새로고침</button>
+</div>
+
+<!-- 현황 (사진 카드 그리드) -->
+<div id="defect-view-status" style="padding:0 16px 16px">
+  <div id="defect-empty" style="display:none;text-align:center;padding:60px 0;color:#9ca3af;font-size:13px"></div>
+  <div id="defect-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px"></div>
+</div>
+
+<!-- 누적현황: 이 라인에서 지금까지 발생한 불량유형 이력 -->
+<div id="defect-view-dashboard" style="padding:16px;display:none">
+  <div id="dash-empty" style="display:none;text-align:center;padding:60px 0;color:#9ca3af;font-size:13px"></div>
+  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 18px">
+    <div id="dash-pareto-title" style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:2px">전체 누적불량현황</div>
+    <div style="font-size:11px;color:#9ca3af;margin-bottom:10px">이 라인에서 지금까지 발생한 불량유형 · 많은 순</div>
+    <div id="dash-pareto"></div>
+  </div>
+</div>
+
+<script>
+if (typeof initDefectTab === 'function') initDefectTab();
+else console.error('js/defect.js 가 로드되지 않았습니다.');
+</script>
