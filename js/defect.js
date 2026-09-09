@@ -35,11 +35,6 @@ window.initDefectTab = function initDefectTab() {
   function esc(v) {
     return String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
   }
-  // 부적합품관리대장 표기(yy.mm.dd)를 yymmdd로 압축 — 점만 제거하면 되므로 뒤에 붙는
-  // 순번(예: 26.09.08-01)도 그대로 살아 260908-01이 된다.
-  function formatLotNo(v) {
-    return v ? String(v).replace(/\./g, '') : '';
-  }
 
   const lineBadge = paneEl.querySelector('#defect-line-badge');
   const dateInput = paneEl.querySelector('#defect-date');
@@ -126,7 +121,7 @@ window.initDefectTab = function initDefectTab() {
             <div><span style="color:#9ca3af">차종</span> ${esc(top.vehicle_model || '-')}</div>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px;border-top:1px dashed #e5e7eb">
-            <span style="font-size:10.5px;color:#6b7280">발생일 ${esc(top.occurred_at || '')}${top.lot_no ? ' · LOT ' + esc(formatLotNo(top.lot_no)) : ''}</span>
+            <span style="font-size:10.5px;color:#6b7280">${esc(top.occurred_at || '')}</span>
             <span style="font-size:10.5px;font-weight:700;color:#fff;background:#1e3264;border-radius:10px;padding:2px 8px">누적 ${g.rows.length}건</span>
           </div>
         </div>
