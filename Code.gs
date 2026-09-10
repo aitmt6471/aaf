@@ -69,16 +69,6 @@ function doPost(e) {
         const startDateTime = `${data.startDate} ${data.startTime}`;
         const endDateTime = `${data.endDate} ${data.endTime}`;
 
-        if (isDuplicateAttendanceRecord(sheet, data)) {
-            return ContentService
-                .createTextOutput(JSON.stringify({
-                    status: 'error',
-                    code: 'DUPLICATE_ATTENDANCE',
-                    message: '동일한 소속, 성명, 직위, 근태발생일자, 시작시간, 근태종료일자, 종료시간, 근태구분의 근태계는 중복 등록할 수 없습니다.'
-                }))
-                .setMimeType(ContentService.MimeType.JSON);
-        }
-
         // A-H 열까지 데이터 저장 (I-L은 수동 관리: 검토상태, 검토일자, 승인상태, 승인일자)
         const rowData = [
             timestamp,              // A: 접수일자
@@ -109,96 +99,6 @@ function doPost(e) {
             }))
             .setMimeType(ContentService.MimeType.JSON);
     }
-}
-
-function normalizeTextValue(value) {
-    return String(value || '').trim();
-}
-
-function normalizeTimeValue(timeValue) {
-    const raw = normalizeTextValue(timeValue);
-
-    if (!raw) {
-        return '';
-    }
-
-    const match = raw.match(/(\d{1,2}):(\d{2})/);
-
-    if (!match) {
-        return raw.slice(0, 5);
-    }
-
-    return ('0' + match[1]).slice(-2) + ':' + match[2];
-}
-
-function splitSheetDateTime(dateTimeValue) {
-    const raw = normalizeTextValue(dateTimeValue);
-
-    if (!raw) {
-        return { date: '', time: '' };
-    }
-
-    var match = raw.match(/Date\((\d{4}),(\d{1,2}),(\d{1,2}),(\d{1,2}),(\d{1,2})/);
-    if (match) {
-        return {
-            date: match[1] + '-' + ('0' + (Number(match[2]) + 1)).slice(-2) + '-' + ('0' + match[3]).slice(-2),
-            time: ('0' + match[4]).slice(-2) + ':' + match[5]
-        };
-    }
-
-    match = raw.match(/(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2})(?::\d{1,2})?/);
-    if (match) {
-        return {
-            date: match[1] + '-' + ('0' + match[2]).slice(-2) + '-' + ('0' + match[3]).slice(-2),
-            time: ('0' + match[4]).slice(-2) + ':' + ('0' + match[5]).slice(-2)
-        };
-    }
-
-    const normalized = raw.replace('T', ' ');
-    const parts = normalized.split(' ');
-    const date = parts[0] || '';
-    const time = normalizeTimeValue(parts[1] || '');
-
-    return { date: date, time: time };
-}
-
-function isDuplicateAttendanceRecord(sheet, requestData) {
-    const lastRow = sheet.getLastRow();
-
-    if (lastRow <= 1) {
-        return false;
-    }
-
-    const rows = sheet.getRange(2, 2, lastRow - 1, 6).getValues();
-    const targetDepartment = normalizeTextValue(requestData.department);
-    const targetPosition = normalizeTextValue(requestData.position);
-    const targetName = normalizeTextValue(requestData.name);
-    const targetStartDate = normalizeTextValue(requestData.startDate);
-    const targetStartTime = normalizeTimeValue(requestData.startTime);
-    const targetEndDate = normalizeTextValue(requestData.endDate);
-    const targetEndTime = normalizeTimeValue(requestData.endTime);
-    const targetType = normalizeTextValue(requestData.type);
-
-    for (var i = 0; i < rows.length; i++) {
-        var row = rows[i];
-        var start = splitSheetDateTime(row[3]);
-        var end = splitSheetDateTime(row[4]);
-
-        if (
-            normalizeTextValue(row[0]) === targetDepartment &&
-            normalizeTextValue(row[1]) === targetPosition &&
-            normalizeTextValue(row[2]) === targetName &&
-            start.date === targetStartDate &&
-            start.time === targetStartTime &&
-            end.date === targetEndDate &&
-            end.time === targetEndTime &&
-            normalizeTextValue(row[5]) === targetType
-        ) {
-            return true;
-        }
-    }
-
-    return false;
 }
 
 function lookupAttendanceRecords(department, name) {

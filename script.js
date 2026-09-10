@@ -18,59 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const notification = document.getElementById('notification');
     const notificationMessage = document.getElementById('notificationMessage');
 
-    function getAttendanceStorageKey(name, startDate) {
-        return `attendance_${name.trim()}_${startDate}`;
-    }
-
-    function normalizeAttendanceRecord(record) {
-        return {
-            department: (record.department || '').trim(),
-            name: (record.name || '').trim(),
-            position: (record.position || '').trim(),
-            startDate: record.startDate || '',
-            startTime: record.startTime || '',
-            endDate: record.endDate || '',
-            endTime: record.endTime || '',
-            type: (record.type || '').trim(),
-            description: (record.description || '').trim()
-        };
-    }
-
-    function getStoredAttendanceRecords(name, startDate) {
-        const key = getAttendanceStorageKey(name, startDate);
-        const raw = localStorage.getItem(key);
-
-        if (!raw) {
-            return [];
-        }
-
-        try {
-            const parsed = JSON.parse(raw);
-            return Array.isArray(parsed) ? parsed : [];
-        } catch (error) {
-            console.warn('Failed to parse stored attendance records:', error);
-            return [];
-        }
-    }
-
-    function hasDuplicateAttendanceRecord(records, targetRecord) {
-        const normalizedTarget = normalizeAttendanceRecord(targetRecord);
-
-        return records.some(record => {
-            const normalizedRecord = normalizeAttendanceRecord(record);
-
-            return normalizedRecord.department === normalizedTarget.department &&
-                normalizedRecord.name === normalizedTarget.name &&
-                normalizedRecord.position === normalizedTarget.position &&
-                normalizedRecord.startDate === normalizedTarget.startDate &&
-                normalizedRecord.startTime === normalizedTarget.startTime &&
-                normalizedRecord.endDate === normalizedTarget.endDate &&
-                normalizedRecord.endTime === normalizedTarget.endTime &&
-                normalizedRecord.type === normalizedTarget.type &&
-                normalizedRecord.description === normalizedTarget.description;
-        });
-    }
-
     // Populate time select options
     const startHourSelect = document.getElementById('startHour');
     const startMinuteSelect = document.getElementById('startMinute');
@@ -137,25 +84,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // 근태구분 확인
         const attendanceType = document.getElementById('type').value;
 
-        // 중복 체크: 같은 날짜의 다른 근태는 허용하고, 동일 내용만 차단
+        // 중복 체크: 근태구분이 '취소'가 아닐 때만 체크
         if (attendanceType !== '취소') {
-            const name = document.getElementById('name').value;
+            const name = document.getElementById('name').value.trim();
             const startDate = document.getElementById('startDate').value;
-            const existingRecords = getStoredAttendanceRecords(name, startDate);
-            const currentRecord = {
-                department: document.getElementById('department').value,
-                name,
-                position: document.getElementById('position').value,
-                startDate,
-                startTime: `${document.getElementById('startHour').value}:${document.getElementById('startMinute').value}`,
-                endDate: document.getElementById('endDate').value,
-                endTime: `${document.getElementById('endHour').value}:${document.getElementById('endMinute').value}`,
-                type: attendanceType,
-                description: document.getElementById('description').value
-            };
+            const key = `attendance_${name}_${startDate}`;
 
-            if (hasDuplicateAttendanceRecord(existingRecords, currentRecord)) {
-                showNotification('동일한 내용의 근태계는 중복으로 작성할 수 없습니다.', 'error');
+            // localStorage에 저장된 기록 확인
+            const existingRecord = localStorage.getItem(key);
+            if (existingRecord) {
+                showNotification('이미 해당 날짜에 근태계가 존재하므로, 취소 근태계를 먼저 작성해주십시오.', 'error');
                 return;
             }
         }
@@ -290,26 +228,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // localStorage에 기록 저장 (중복 체크용)
             const name = data.name.trim();
             const startDate = data.startDate;
-            const key = getAttendanceStorageKey(name, startDate);
+            const key = `attendance_${name}_${startDate}`;
 
             // 근태구분이 '취소'인 경우, 기존 기록 삭제
             if (data.type === '취소') {
                 localStorage.removeItem(key);
             } else {
-                const existingRecords = getStoredAttendanceRecords(name, startDate);
-                existingRecords.push({
-                    department: data.department,
-                    name,
-                    position: data.position,
-                    startDate: data.startDate,
-                    startTime: data.startTime,
-                    endDate: data.endDate,
-                    endTime: data.endTime,
+                // 그 외의 경우 저장
+                localStorage.setItem(key, JSON.stringify({
+                    name: name,
+                    date: startDate,
                     type: data.type,
-                    description: data.description,
                     timestamp: new Date().toISOString()
-                });
-                localStorage.setItem(key, JSON.stringify(existingRecords));
+                }));
             }
 
             showNotification('제출이 완료되었습니다! 감사합니다.', 'success');
