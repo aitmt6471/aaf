@@ -48,6 +48,11 @@ function doPost(e) {
             return lookupAttendanceRecords(data.department, data.name);
         }
         
+        // 삭제(취소) 요청인 경우
+        if (data.action === 'cancelRecord') {
+            return cancelAttendanceRecord(data);
+        }
+
         // 제출 요청인 경우
         const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
         const sheets = spreadsheet.getSheets();
@@ -99,6 +104,49 @@ function doPost(e) {
             }))
             .setMimeType(ContentService.MimeType.JSON);
     }
+}
+
+// 시작/종료 값을 'yyyy-MM-dd HH:mm' 문자열로 통일 (Date 셀 / 문자열 셀 모두 대응)
+function toDateTimeKey(v) {
+    if (v instanceof Date) {
+        return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
+    }
+    const s = String(v).trim();
+    const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2})/);
+    if (!m) return s;
+    const p = (n) => ('0' + n).slice(-2);
+    return `${m[1]}-${p(m[2])}-${p(m[3])} ${p(m[4])}:${p(m[5])}`;
+}
+
+// 근태 신청 내역 삭제: 검토/승인 완료 건은 서버에서도 거부
+function cancelAttendanceRecord(data) {
+    const respond = (obj) => ContentService
+        .createTextOutput(JSON.stringify(obj))
+        .setMimeType(ContentService.MimeType.JSON);
+
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()
+        .filter((s) => s.getSheetId() === SHEET_GID)[0];
+    if (!sheet) return respond({ status: 'error', message: 'Sheet not found' });
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return respond({ status: 'error', message: 'NOT_FOUND' });
+
+    const values = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
+    for (let i = 0; i < values.length; i++) {
+        const r = values[i];
+        if (String(r[1]).trim() !== data.department) continue;
+        if (String(r[3]).trim() !== data.name) continue;
+        if (toDateTimeKey(r[4]) !== data.startKey) continue;
+        if (toDateTimeKey(r[5]) !== data.endKey) continue;
+        if (String(r[6]).trim() !== data.type) continue;
+
+        if (String(r[8]).trim() === '승인' || String(r[10]).trim() === '승인') {
+            return respond({ status: 'error', message: 'ALREADY_PROCESSED' });
+        }
+        sheet.deleteRow(i + 2);
+        return respond({ status: 'success' });
+    }
+    return respond({ status: 'error', message: 'NOT_FOUND' });
 }
 
 function lookupAttendanceRecords(department, name) {

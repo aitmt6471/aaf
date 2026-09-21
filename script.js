@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // localStorage에 저장된 기록 확인
             const existingRecord = localStorage.getItem(key);
             if (existingRecord) {
-                showNotification('이미 해당 날짜에 근태계가 존재하므로, 취소 근태계를 먼저 작성해주십시오.', 'error');
+                showNotification('이미 해당 날짜에 근태계가 존재하므로, 조회 탭에서 기존 근태계를 먼저 취소해주십시오.', 'error');
                 return;
             }
         }
@@ -414,6 +414,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     name: cells[3]?.v || '',                        // D: 성명
                     startDate: cells[4]?.f || cells[4]?.v || '',   // E: 근태발생일자
                     endDate: cells[5]?.f || cells[5]?.v || '',     // F: 근태종료일자
+                    startKey: toDateTimeKey(cells[4]?.v),           // 삭제 매칭용 키
+                    endKey: toDateTimeKey(cells[5]?.v),
                     type: cells[6]?.v || '',                        // G: 근태구분
                     description: cells[7]?.v || '',                 // H: 근태사유
                     reviewStatus: cells[8]?.v || '',                // I: 검토상태
@@ -529,11 +531,102 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><strong>${record.type}</strong></td>
                 <td>${reviewBadge}</td>
                 <td>${approvalBadge}</td>
+                <td><button type="button" class="row-cancel-btn">취소</button></td>
             `;
+
+            // 검토 또는 승인이 이미 완료(O)된 건은 취소 불가
+            const cancelBtn = row.querySelector('.row-cancel-btn');
+            const processed = [record.reviewStatus, record.approvalStatus]
+                .some(s => s && s.trim() === '승인');
+            if (processed) {
+                cancelBtn.disabled = true;
+                cancelBtn.title = '검토/승인이 완료된 건은 취소할 수 없습니다.';
+            } else {
+                cancelBtn.addEventListener('click', () => openCancelModal(record, row));
+            }
 
             recordsTableBody.appendChild(row);
         });
     }
+
+    // 시트 값(Date(...) 또는 문자열)을 'yyyy-MM-dd HH:mm'으로 통일 (Code.gs toDateTimeKey와 동일 규칙)
+    function toDateTimeKey(v) {
+        const s = String(v ?? '').trim();
+        const p = (n) => String(n).padStart(2, '0');
+        let m = s.match(/Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+))?/);
+        if (m) return `${m[1]}-${p(+m[2] + 1)}-${p(m[3])} ${p(m[4] || 0)}:${p(m[5] || 0)}`;
+        m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2})/);
+        if (m) return `${m[1]}-${p(m[2])}-${p(m[3])} ${p(m[4])}:${p(m[5])}`;
+        return s;
+    }
+
+    // 근태 취소(삭제) 모달
+    const cancelRecordModal = document.getElementById('cancelRecordModal');
+    const cancelRecordYes = document.getElementById('cancelRecordYes');
+    const cancelRecordNo = document.getElementById('cancelRecordNo');
+    let pendingCancel = null;
+
+    function openCancelModal(record, row) {
+        pendingCancel = { record, row };
+        cancelRecordModal.classList.remove('hidden');
+    }
+
+    function closeCancelModal() {
+        pendingCancel = null;
+        cancelRecordModal.classList.add('hidden');
+    }
+
+    cancelRecordNo.addEventListener('click', closeCancelModal);
+    cancelRecordModal.addEventListener('click', (e) => {
+        if (e.target === cancelRecordModal) closeCancelModal();
+    });
+
+    cancelRecordYes.addEventListener('click', async () => {
+        if (!pendingCancel) return;
+        const { record, row } = pendingCancel;
+        cancelRecordYes.disabled = true;
+
+        try {
+            // text/plain → preflight 없는 단순 요청이라 응답을 읽을 수 있음
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    action: 'cancelRecord',
+                    department: record.department,
+                    name: record.name,
+                    startKey: record.startKey,
+                    endKey: record.endKey,
+                    type: record.type
+                })
+            });
+            const result = await response.json();
+
+            if (result.status === 'success') {
+                if (record.type === '연차') annualLeaveCount.textContent = Math.max(0, annualLeaveCount.textContent - 1);
+                if (record.type === '반차') halfLeaveCount.textContent = Math.max(0, halfLeaveCount.textContent - 1);
+                // 재신청이 막히지 않도록 중복 체크용 localStorage 기록 삭제
+                try {
+                    localStorage.removeItem(`attendance_${record.name}_${record.startKey.slice(0, 10)}`);
+                } catch (e) { /* localStorage 사용 불가 시 무시 */ }
+                row.remove();
+                if (!recordsTableBody.children.length) noRecords.classList.remove('hidden');
+                alert('취소되었습니다.');
+            } else if (result.message === 'ALREADY_PROCESSED') {
+                alert('이미 검토/승인된 건이라 취소할 수 없습니다.');
+            } else if (result.message === 'NOT_FOUND') {
+                alert('해당 신청 내역을 찾을 수 없습니다. 다시 조회해 주세요.');
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (error) {
+            console.error('Cancel error:', error);
+            alert('취소 중 오류가 발생했습니다. 다시 시도해 주세요.');
+        } finally {
+            cancelRecordYes.disabled = false;
+            closeCancelModal();
+        }
+    });
 
     // 한국어 날짜 형식 파싱 함수
     function parseKoreanDate(dateStr) {

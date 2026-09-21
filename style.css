@@ -490,6 +490,22 @@ input[type="date"],
     box-shadow: 0 12px 25px rgba(59, 130, 246, 0.4);
 }
 
+.row-cancel-btn {
+    padding: 4px 10px;
+    border: 1px solid #ef4444;
+    border-radius: 6px;
+    background: transparent;
+    color: #ef4444;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.row-cancel-btn:disabled {
+    border-color: #9ca3af;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
 .modal-btn:active {
     transform: translateY(0) scale(0.98);
 }
