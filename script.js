@@ -1,7 +1,7 @@
 ﻿/**
  * Google Apps Script Web App URL (for submission)
  */
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwKZoWmYZLoeM0rW0eHXMQepWRw66wGqCjPWJpQF29JvrfW-bbkoG5vqDMY4XZJQ08vyQ/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyuQ5TWd8H6PYd_3ieJN3xCkb4wWWLS4_eNwbcu-LXFi3iDT4M0G6rNIsuyOKwd0QH6Tg/exec';
 
 /**
  * Google Sheets Configuration (for lookup)
