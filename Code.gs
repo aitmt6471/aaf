@@ -122,7 +122,7 @@ function doPost(e) {
 // 시작/종료 값을 'yyyy-MM-dd HH:mm' 문자열로 통일 (Date 셀 / 문자열 셀 모두 대응)
 function toDateTimeKey(v) {
     if (v instanceof Date) {
-        return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
+        return Utilities.formatDate(v, SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone(), 'yyyy-MM-dd HH:mm');
     }
     const s = String(v).trim();
     const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2})/);
