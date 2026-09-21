@@ -32,10 +32,9 @@ const SHEET_GID = 1588285255; // Sheet gid (from URL: gid=1588285255)
 
 // ===== CORS Preflight 처리 =====
 function doOptions(e) {
-    const output = ContentService.createTextOutput();
-    output.setMimeType(ContentService.MimeType.JSON);
-    output.setContent('');
-    return output;
+    return ContentService
+        .createTextOutput('')
+        .setMimeType(ContentService.MimeType.TEXT);
 }
 
 // ===== 웹페이지 제출 및 조회 처리 =====
@@ -86,15 +85,29 @@ function doPost(e) {
             data.description        // H: 근태사유
         ];
 
-        sheet.appendRow(rowData);
+        const lock = LockService.getScriptLock();
+        lock.waitLock(30000);
 
-        return ContentService
-            .createTextOutput(JSON.stringify({
-                status: 'success',
-                message: 'Data saved successfully',
-                timestamp: timestamp
-            }))
-            .setMimeType(ContentService.MimeType.JSON);
+        try {
+            const rowNumber = sheet.getLastRow() + 1;
+
+            sheet.getRange(rowNumber, 1, 1, rowData.length)
+                 .setValues([rowData]);
+
+            SpreadsheetApp.flush();
+
+            return ContentService
+                .createTextOutput(JSON.stringify({
+                    status: 'success',
+                    message: 'Data saved successfully',
+                    timestamp: timestamp,
+                    row: rowNumber
+                }))
+                .setMimeType(ContentService.MimeType.JSON);
+
+        } finally {
+            lock.releaseLock();
+        }
 
     } catch (error) {
         return ContentService
@@ -131,6 +144,9 @@ function cancelAttendanceRecord(data) {
     const lastRow = sheet.getLastRow();
     if (lastRow < 2) return respond({ status: 'error', message: 'NOT_FOUND' });
 
+    const lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try {
     const values = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
     for (let i = 0; i < values.length; i++) {
         const r = values[i];
@@ -147,6 +163,9 @@ function cancelAttendanceRecord(data) {
         return respond({ status: 'success' });
     }
     return respond({ status: 'error', message: 'NOT_FOUND' });
+    } finally {
+        lock.releaseLock();
+    }
 }
 
 function lookupAttendanceRecords(department, name) {
@@ -253,4 +272,59 @@ function testDoGet() {
 
     const result = doGet(testEvent);
     Logger.log(result.getContent());
+}
+function quickTest() {
+  const result = doPost({
+    postData: {
+      contents: JSON.stringify({
+        action: 'lookup',
+        department: '생산관리팀',
+        name: '이미혜'
+      })
+    }
+  });
+  Logger.log(result.getContent());
+}
+function onFormSubmit(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const target = ss.getSheetByName('근태계 접수현황');
+
+  // e.values 또는 e.namedValues로 값 구성 (예시는 e.values)
+  const values = e.values; // 폼 응답 한 줄
+
+  const nextRow = target.getLastRow() + 1;
+  target.getRange(nextRow, 1, 1, values.length).setValues([values]);
+}
+
+function addJwaSujeongMissingAttendance() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const sheets = spreadsheet.getSheets();
+
+  let sheet = null;
+
+  for (let i = 0; i < sheets.length; i++) {
+    if (sheets[i].getSheetId() === SHEET_GID) {
+      sheet = sheets[i];
+      break;
+    }
+  }
+
+  if (!sheet) {
+    throw new Error('근태계 접수현황 시트를 찾을 수 없습니다.');
+  }
+
+  const rowData = [
+    new Date(),                       // A 접수일자
+    '생산관리팀',                     // B 소속
+    '사원',                           // C 직위
+    '좌수정',                         // D 성명
+    '2026-09-16 09:00',              // E 근태발생일시
+    '2026-09-16 14:30',              // F 근태종료일시
+    '근태누락',                       // G 근태구분
+    '입사일 근태누락'                 // H 사유
+  ];
+
+  sheet.appendRow(rowData);
+
+  Logger.log('좌수정 근태누락 등록 완료');
 }
