@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (attendanceType !== '취소') {
             const name = document.getElementById('name').value.trim();
             const startDate = document.getElementById('startDate').value;
-            const key = `attendance_${name}_${startDate}`;
+            const key = `attendance_${name}_${startDate}_${attendanceType}`;
 
             // localStorage에 저장된 기록 확인
             const existingRecord = localStorage.getItem(key);
@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // localStorage에 기록 저장 (중복 체크용)
             const name = data.name.trim();
             const startDate = data.startDate;
-            const key = `attendance_${name}_${startDate}`;
+            const key = `attendance_${name}_${startDate}_${data.type}`;
 
             // 근태구분이 '취소'인 경우, 기존 기록 삭제
             if (data.type === '취소') {
@@ -607,7 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (record.type === '반차') halfLeaveCount.textContent = Math.max(0, halfLeaveCount.textContent - 1);
                 // 재신청이 막히지 않도록 중복 체크용 localStorage 기록 삭제
                 try {
-                    localStorage.removeItem(`attendance_${record.name}_${record.startKey.slice(0, 10)}`);
+                    localStorage.removeItem(`attendance_${record.name}_${record.startKey.slice(0, 10)}_${record.type}`);
                 } catch (e) { /* localStorage 사용 불가 시 무시 */ }
                 row.remove();
                 if (!recordsTableBody.children.length) noRecords.classList.remove('hidden');

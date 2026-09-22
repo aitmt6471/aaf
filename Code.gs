@@ -89,6 +89,16 @@ function doPost(e) {
         lock.waitLock(30000);
 
         try {
+            if (isDuplicateAttendanceRecord(sheet, data)) {
+                return ContentService
+                    .createTextOutput(JSON.stringify({
+                        status: 'error',
+                        code: 'DUPLICATE_ATTENDANCE',
+                        message: '동일한 소속, 직위, 성명, 근태발생일시, 근태종료일시, 근태구분의 근태계는 중복 등록할 수 없습니다.'
+                    }))
+                    .setMimeType(ContentService.MimeType.JSON);
+            }
+
             const rowNumber = sheet.getLastRow() + 1;
 
             sheet.getRange(rowNumber, 1, 1, rowData.length)
@@ -129,6 +139,29 @@ function toDateTimeKey(v) {
     if (!m) return s;
     const p = (n) => ('0' + n).slice(-2);
     return `${m[1]}-${p(m[2])}-${p(m[3])} ${p(m[4])}:${p(m[5])}`;
+}
+
+// 완전 동일 건(소속+직위+성명+시작+종료+근태구분) 중복 등록 방지
+// 근태구분이 다르면(예: 지각 + 연차) 같은 날이어도 중복으로 보지 않음
+function isDuplicateAttendanceRecord(sheet, data) {
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return false;
+
+    const startKey = toDateTimeKey(`${data.startDate} ${data.startTime}`);
+    const endKey = toDateTimeKey(`${data.endDate} ${data.endTime}`);
+
+    const rows = sheet.getRange(2, 2, lastRow - 1, 6).getValues(); // B:G
+    for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        if (String(r[0]).trim() !== data.department) continue;
+        if (String(r[1]).trim() !== data.position) continue;
+        if (String(r[2]).trim() !== data.name) continue;
+        if (toDateTimeKey(r[3]) !== startKey) continue;
+        if (toDateTimeKey(r[4]) !== endKey) continue;
+        if (String(r[5]).trim() !== data.type) continue;
+        return true;
+    }
+    return false;
 }
 
 // 근태 신청 내역 삭제: 검토/승인 완료 건은 서버에서도 거부
