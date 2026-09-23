@@ -419,7 +419,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     type: cells[6]?.v || '',                        // G: 근태구분
                     description: cells[7]?.v || '',                 // H: 근태사유
                     reviewStatus: cells[8]?.v || '',                // I: 검토상태
-                    approvalStatus: cells[10]?.v || ''              // K: 승인상태 (J열 건너뜀)
+                    reviewDate: cells[9]?.f || cells[9]?.v || '',   // J: 검토처리일자
+                    approvalStatus: cells[10]?.v || '',             // K: 승인상태
+                    approvalDate: cells[11]?.f || cells[11]?.v || ''// L: 승인처리일자
                 };
             });
 
@@ -518,6 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         records.forEach(record => {
             const row = document.createElement('tr');
+            row.className = 'record-row';
 
             // Format date
             const dateStr = formatDate(record.startDate, record.endDate);
@@ -542,10 +545,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 cancelBtn.disabled = true;
                 cancelBtn.title = '검토/승인이 완료된 건은 취소할 수 없습니다.';
             } else {
-                cancelBtn.addEventListener('click', () => openCancelModal(record, row));
+                cancelBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openCancelModal(record, row);
+                });
             }
 
+            // 상세 정보 행 (클릭하면 펼쳐짐)
+            const detailRow = document.createElement('tr');
+            detailRow.className = 'record-detail-row hidden';
+            detailRow.innerHTML = `
+                <td colspan="5">
+                    <div class="record-detail">
+                        <div><span class="detail-key">접수일자</span><span>${record.submitDate || '-'}</span></div>
+                        <div><span class="detail-key">소속</span><span>${record.department || '-'}</span></div>
+                        <div><span class="detail-key">직위</span><span>${record.position || '-'}</span></div>
+                        <div><span class="detail-key">성명</span><span>${record.name || '-'}</span></div>
+                        <div><span class="detail-key">근태 발생</span><span>${record.startDate || '-'}</span></div>
+                        <div><span class="detail-key">근태 종료</span><span>${record.endDate || '-'}</span></div>
+                        <div><span class="detail-key">사유</span><span>${record.description || '-'}</span></div>
+                        <div><span class="detail-key">검토처리일자</span><span>${record.reviewDate || '-'}</span></div>
+                        <div><span class="detail-key">승인처리일자</span><span>${record.approvalDate || '-'}</span></div>
+                    </div>
+                </td>
+            `;
+
+            row.addEventListener('click', () => {
+                detailRow.classList.toggle('hidden');
+            });
+
             recordsTableBody.appendChild(row);
+            recordsTableBody.appendChild(detailRow);
         });
     }
 
@@ -609,6 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     localStorage.removeItem(`attendance_${record.name}_${record.startKey.slice(0, 10)}_${record.type}`);
                 } catch (e) { /* localStorage 사용 불가 시 무시 */ }
+                row.nextElementSibling?.classList.contains('record-detail-row') && row.nextElementSibling.remove();
                 row.remove();
                 if (!recordsTableBody.children.length) noRecords.classList.remove('hidden');
                 alert('취소되었습니다.');

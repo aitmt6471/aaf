@@ -738,6 +738,37 @@ input[type="date"],
     color: var(--text-main);
 }
 
+.record-row {
+    cursor: pointer;
+}
+
+.record-detail-row.hidden {
+    display: none;
+}
+
+.record-detail-row td {
+    padding: 0 12px 16px;
+    background: rgba(59, 130, 246, 0.04);
+}
+
+.record-detail {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px 20px;
+    padding: 12px 4px;
+    font-size: 13px;
+}
+
+.record-detail > div {
+    display: flex;
+    gap: 6px;
+}
+
+.detail-key {
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
 /* Status Badges */
 .status-badge {
     display: inline-block;
