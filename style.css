@@ -742,6 +742,13 @@ input[type="date"],
     cursor: pointer;
 }
 
+.submit-date {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
 .record-detail-row.hidden {
     display: none;
 }

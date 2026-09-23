@@ -524,13 +524,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Format date
             const dateStr = formatDate(record.startDate, record.endDate);
+            const submitDateStr = formatSubmitDate(record.submitDate);
 
             // Get status badges
             const reviewBadge = getStatusBadge(record.reviewStatus);
             const approvalBadge = getStatusBadge(record.approvalStatus);
 
             row.innerHTML = `
-                <td>${dateStr}</td>
+                <td>${dateStr}<span class="submit-date">등록일 ${submitDateStr}</span></td>
                 <td><strong>${record.type}</strong></td>
                 <td>${reviewBadge}</td>
                 <td>${approvalBadge}</td>
@@ -712,6 +713,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return null;
     }
 
+    function formatSingleDate(date) {
+        const year = String(date.getFullYear()).slice(-2); // 2025 → 25
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        return `${year}.${month}.${day}`;
+    }
+
     function formatDate(startDate, endDate) {
         const start = parseKoreanDate(startDate);
         const end = parseKoreanDate(endDate);
@@ -721,18 +729,17 @@ document.addEventListener('DOMContentLoaded', () => {
             return startDate || '';
         }
 
-        const formatSingle = (date) => {
-            const year = String(date.getFullYear()).slice(-2); // 2025 → 25
-            const month = date.getMonth() + 1;
-            const day = date.getDate();
-            return `${year}.${month}.${day}`;
-        };
-
         if (startDate === endDate) {
-            return formatSingle(start);
+            return formatSingleDate(start);
         } else {
-            return `${formatSingle(start)} ~ ${formatSingle(end)}`;
+            return `${formatSingleDate(start)} ~ ${formatSingleDate(end)}`;
         }
+    }
+
+    // 접수일자(등록일)를 "yy.m.d" 형태로 축약. 파싱 실패 시 원본 그대로 표시
+    function formatSubmitDate(submitDate) {
+        const parsed = parseKoreanDate(submitDate);
+        return parsed ? formatSingleDate(parsed) : (submitDate || '-');
     }
 
     function getStatusBadge(status) {
