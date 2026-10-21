@@ -335,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
 
         const department = document.getElementById('lookupDepartment').value;
-        const name = document.getElementById('lookupName').value.trim();
+        const name = normalizeKey(document.getElementById('lookupName').value);
 
         // 디버깅: 요소 존재 확인
         const startDateElement = document.getElementById('lookupStartDate');
@@ -439,8 +439,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 필터링: 소속, 성명, 날짜 범위
             const filteredRecords = allRecords.filter(record => {
-                // 시트에 '나은미 '처럼 공백이 붙어 저장된 이름도 매칭되도록 trim 비교
-                if (String(record.department).trim() !== department || String(record.name).trim() !== name) {
+                // 시트 이름에 공백이 섞여 있어도 같은 이름이면 매칭
+                if (normalizeKey(record.department) !== normalizeKey(department) || normalizeKey(record.name) !== name) {
                     return false;
                 }
 
@@ -661,6 +661,12 @@ document.addEventListener('DOMContentLoaded', () => {
             closeCancelModal();
         }
     });
+
+    // 이름/소속 비교용: 공백(앞뒤·중간·전각)과 제로폭 문자를 모두 제거하고 유니코드 정규화
+    // '나은미 ', '나 은미', '나은미　' 를 모두 같은 이름으로 취급
+    function normalizeKey(v) {
+        return String(v ?? '').normalize('NFC').replace(/[\s\u200B-\u200D\uFEFF]/g, '');
+    }
 
     // 한국어 날짜 형식 파싱 함수
     function parseKoreanDate(dateStr) {

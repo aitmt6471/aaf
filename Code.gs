@@ -133,6 +133,12 @@ function doPost(e) {
     }
 }
 
+// 이름/소속 비교용: 공백(앞뒤·중간·전각)과 제로폭 문자를 모두 제거하고 유니코드 정규화
+// '나은미 ', '나 은미', '나은미　' 를 모두 같은 이름으로 취급
+function normalizeKey(v) {
+    return String(v == null ? '' : v).normalize('NFC').replace(/[\s\u200B-\u200D\uFEFF]/g, '');
+}
+
 // 시작/종료 값을 'yyyy-MM-dd HH:mm' 문자열로 통일 (Date 셀 / 문자열 셀 모두 대응)
 function toDateTimeKey(v) {
     if (v instanceof Date) {
@@ -157,9 +163,9 @@ function isDuplicateAttendanceRecord(sheet, data) {
     const rows = sheet.getRange(2, 2, lastRow - 1, 6).getValues(); // B:G
     for (let i = 0; i < rows.length; i++) {
         const r = rows[i];
-        if (String(r[0]).trim() !== data.department) continue;
-        if (String(r[1]).trim() !== data.position) continue;
-        if (String(r[2]).trim() !== data.name) continue;
+        if (normalizeKey(r[0]) !== normalizeKey(data.department)) continue;
+        if (normalizeKey(r[1]) !== normalizeKey(data.position)) continue;
+        if (normalizeKey(r[2]) !== normalizeKey(data.name)) continue;
         if (toDateTimeKey(r[3]) !== startKey) continue;
         if (toDateTimeKey(r[4]) !== endKey) continue;
         if (String(r[5]).trim() !== data.type) continue;
@@ -187,8 +193,8 @@ function cancelAttendanceRecord(data) {
     const values = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
     for (let i = 0; i < values.length; i++) {
         const r = values[i];
-        if (String(r[1]).trim() !== data.department) continue;
-        if (String(r[3]).trim() !== data.name) continue;
+        if (normalizeKey(r[1]) !== normalizeKey(data.department)) continue;
+        if (normalizeKey(r[3]) !== normalizeKey(data.name)) continue;
         if (toDateTimeKey(r[4]) !== data.startKey) continue;
         if (toDateTimeKey(r[5]) !== data.endKey) continue;
         if (String(r[6]).trim() !== data.type) continue;
@@ -236,7 +242,7 @@ function lookupAttendanceRecords(department, name) {
         const row = data[i];
 
         // 소속(B)과 성명(D)이 일치하는 경우
-        if (String(row[1]).trim() === String(department).trim() && String(row[3]).trim() === String(name).trim()) {
+        if (normalizeKey(row[1]) === normalizeKey(department) && normalizeKey(row[3]) === normalizeKey(name)) {
             records.push({
                 submitDate: formatDateForDisplay(row[0]),      // A: 접수일자
                 department: row[1],                            // B: 소속
