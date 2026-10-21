@@ -625,8 +625,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({
                     action: 'cancelRecord',
-                    department: record.department,
-                    name: record.name,
+                    // 서버는 시트 값을 trim해서 비교하므로 요청 값도 trim ('나은미 ' 같은 행 대응)
+                    department: String(record.department).trim(),
+                    name: String(record.name).trim(),
                     startKey: record.startKey,
                     endKey: record.endKey,
                     type: record.type
