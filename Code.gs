@@ -41,6 +41,10 @@ function doOptions(e) {
 function doPost(e) {
     try {
         const data = JSON.parse(e.postData.contents);
+        // 이름 등에 붙은 앞뒤 공백 제거 (공백이 저장되면 조회/취소 매칭이 깨짐)
+        ['department', 'position', 'name'].forEach((k) => {
+            if (typeof data[k] === 'string') data[k] = data[k].trim();
+        });
         
         // 조회 요청인 경우
         if (data.action === 'lookup') {
@@ -232,7 +236,7 @@ function lookupAttendanceRecords(department, name) {
         const row = data[i];
 
         // 소속(B)과 성명(D)이 일치하는 경우
-        if (row[1] === department && row[3] === name) {
+        if (String(row[1]).trim() === String(department).trim() && String(row[3]).trim() === String(name).trim()) {
             records.push({
                 submitDate: formatDateForDisplay(row[0]),      // A: 접수일자
                 department: row[1],                            // B: 소속
@@ -360,4 +364,25 @@ function addJwaSujeongMissingAttendance() {
   sheet.appendRow(rowData);
 
   Logger.log('좌수정 근태누락 등록 완료');
+}
+
+// ===== 1회용: 시트의 소속/직위/성명(B~D) 앞뒤 공백 일괄 제거 =====
+// 공백이 붙은 행은 조회 탭의 취소 버튼에서 NOT_FOUND가 나므로 한 번 실행해 정리
+function trimNameWhitespace() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()
+    .filter((s) => s.getSheetId() === SHEET_GID)[0];
+  if (!sheet) throw new Error('Sheet not found');
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+
+  const range = sheet.getRange(2, 2, lastRow - 1, 3); // B:D
+  const values = range.getValues();
+  let changed = 0;
+  const trimmed = values.map((r) => r.map((v) => {
+    if (typeof v === 'string' && v !== v.trim()) { changed++; return v.trim(); }
+    return v;
+  }));
+  if (changed) range.setValues(trimmed);
+  Logger.log(`공백 제거 완료: ${changed}칸`);
 }

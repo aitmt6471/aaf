@@ -335,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
 
         const department = document.getElementById('lookupDepartment').value;
-        const name = document.getElementById('lookupName').value;
+        const name = document.getElementById('lookupName').value.trim();
 
         // 디버깅: 요소 존재 확인
         const startDateElement = document.getElementById('lookupStartDate');
@@ -439,7 +439,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 필터링: 소속, 성명, 날짜 범위
             const filteredRecords = allRecords.filter(record => {
-                if (record.department !== department || record.name !== name) {
+                // 시트에 '나은미 '처럼 공백이 붙어 저장된 이름도 매칭되도록 trim 비교
+                if (String(record.department).trim() !== department || String(record.name).trim() !== name) {
                     return false;
                 }
 
