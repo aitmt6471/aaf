@@ -98,7 +98,7 @@ function doPost(e) {
                     .createTextOutput(JSON.stringify({
                         status: 'error',
                         code: 'DUPLICATE_ATTENDANCE',
-                        message: '동일한 소속, 직위, 성명, 근태발생일시, 근태종료일시, 근태구분의 근태계는 중복 등록할 수 없습니다.'
+                        message: '동일한 성명, 근태발생일시, 근태종료일시, 근태구분의 근태계는 중복 등록할 수 없습니다.'
                     }))
                     .setMimeType(ContentService.MimeType.JSON);
             }
@@ -163,8 +163,6 @@ function isDuplicateAttendanceRecord(sheet, data) {
     const rows = sheet.getRange(2, 2, lastRow - 1, 6).getValues(); // B:G
     for (let i = 0; i < rows.length; i++) {
         const r = rows[i];
-        if (normalizeKey(r[0]) !== normalizeKey(data.department)) continue;
-        if (normalizeKey(r[1]) !== normalizeKey(data.position)) continue;
         if (normalizeKey(r[2]) !== normalizeKey(data.name)) continue;
         if (toDateTimeKey(r[3]) !== startKey) continue;
         if (toDateTimeKey(r[4]) !== endKey) continue;
@@ -191,6 +189,9 @@ function cancelAttendanceRecord(data) {
     lock.waitLock(30000);
     try {
     const values = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
+    // 동일 조건의 중복 건이 여러 개일 수 있음:
+    // 승인된 건은 건너뛰고(유지), 승인 안 된 건만 삭제한다.
+    let matchedProcessed = false;
     for (let i = 0; i < values.length; i++) {
         const r = values[i];
         if (normalizeKey(r[1]) !== normalizeKey(data.department)) continue;
@@ -200,12 +201,14 @@ function cancelAttendanceRecord(data) {
         if (String(r[6]).trim() !== data.type) continue;
 
         if (String(r[8]).trim() === '승인' || String(r[10]).trim() === '승인') {
-            return respond({ status: 'error', message: 'ALREADY_PROCESSED' });
+            matchedProcessed = true;
+            continue;
         }
         sheet.deleteRow(i + 2);
         return respond({ status: 'success' });
     }
-    return respond({ status: 'error', message: 'NOT_FOUND' });
+    // 일치하는 건이 전부 승인 완료인 경우에만 거부
+    return respond({ status: 'error', message: matchedProcessed ? 'ALREADY_PROCESSED' : 'NOT_FOUND' });
     } finally {
         lock.releaseLock();
     }

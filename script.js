@@ -84,19 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 근태구분 확인
         const attendanceType = document.getElementById('type').value;
 
-        // 중복 체크: 근태구분이 '취소'가 아닐 때만 체크
-        if (attendanceType !== '취소') {
-            const name = document.getElementById('name').value.trim();
-            const startDate = document.getElementById('startDate').value;
-            const key = `attendance_${name}_${startDate}_${attendanceType}`;
-
-            // localStorage에 저장된 기록 확인
-            const existingRecord = localStorage.getItem(key);
-            if (existingRecord) {
-                showNotification('이미 해당 날짜에 근태계가 존재하므로, 조회 탭에서 기존 근태계를 먼저 취소해주십시오.', 'error');
-                return;
-            }
-        }
+        // 중복 체크는 서버(시트 기준)에서 수행: 이름+시작/종료 일시+근태구분이 같으면 거부
 
         // Show confirmation modal
         showConfirmModal();
@@ -213,17 +201,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error('Backend URL not configured. Please set the SCRIPT_URL in script.js.');
             }
 
+            // text/plain → preflight 없는 단순 요청이라 응답을 읽을 수 있음 (중복 여부 확인용)
             const response = await fetch(SCRIPT_URL, {
                 method: 'POST',
-                mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(data)
             });
+            const result = await response.json();
 
-            // Since mode is 'no-cors', we can't read the response
-            // Assume success if no error was thrown
+            if (result.code === 'DUPLICATE_ATTENDANCE') {
+                alert('이미 동일한 근태계(이름, 날짜, 시간, 근태구분)가 존재합니다.\n조회 탭에서 기존 근태계를 확인해 주세요.');
+                showNotification('중복된 근태계가 존재하여 제출되지 않았습니다.', 'error');
+                return;
+            }
+            if (result.status !== 'success') {
+                throw new Error(result.message || '제출 중 오류가 발생했습니다.');
+            }
 
             // localStorage에 기록 저장 (중복 체크용)
             const name = data.name.trim();
