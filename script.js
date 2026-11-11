@@ -639,6 +639,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 row.remove();
                 if (!recordsTableBody.children.length) noRecords.classList.remove('hidden');
                 alert('취소되었습니다.');
+            } else if (result.message === 'ALREADY_PROCESSED' && result.build !== 'cancel-v2') {
+                // 서버(Apps Script)가 구버전: 승인 건을 먼저 만나면 미승인 중복 건까지 막아버림
+                alert('서버(Apps Script)가 최신 버전이 아닙니다.\n관리자가 Apps Script를 "새 버전"으로 다시 배포해야 중복 건 취소가 가능합니다.');
             } else if (result.message === 'ALREADY_PROCESSED') {
                 alert('이미 검토/승인된 건이라 취소할 수 없습니다.');
             } else if (result.message === 'NOT_FOUND') {

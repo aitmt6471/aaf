@@ -174,8 +174,9 @@ function isDuplicateAttendanceRecord(sheet, data) {
 
 // 근태 신청 내역 삭제: 검토/승인 완료 건은 서버에서도 거부
 function cancelAttendanceRecord(data) {
+    // build: 서버 코드 버전 표시 (화면에서 구버전 배포 여부 판별용)
     const respond = (obj) => ContentService
-        .createTextOutput(JSON.stringify(obj))
+        .createTextOutput(JSON.stringify(Object.assign({ build: 'cancel-v2' }, obj)))
         .setMimeType(ContentService.MimeType.JSON);
 
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()
